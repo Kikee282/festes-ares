@@ -7,6 +7,7 @@ use App\Exports\RecibosExport;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Maatwebsite\Excel\Facades\Excel;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ReciboController extends Controller
 {
@@ -51,5 +52,16 @@ class ReciboController extends Controller
         $recibo->delete();
 
         return redirect()->back();
+    }
+
+    public function pdf($id)
+    {
+        $recibo = Recibo::findOrFail($id);
+
+        // Carga la vista blade pasándole los datos del recibo
+        $pdf = Pdf::loadView('pdf.recibo', compact('recibo'));
+
+        // stream() abre el PDF directamente en el navegador
+        return $pdf->stream("recibo-{$recibo->id}.pdf");
     }
 }
