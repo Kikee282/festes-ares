@@ -25,7 +25,7 @@
     <table class="details">
         <tr>
             <td class="label">Nº de Recibo:</td>
-            <td>#{{ $recibo->id }}</td>
+            <td>#{{ $recibo->numero }}</td>
         </tr>
         <tr>
             <td class="label">Fecha:</td>
@@ -33,11 +33,7 @@
         </tr>
         <tr>
             <td class="label">Pagado por:</td>
-            <td>{{ $recibo->nombre_cliente }}</td>
-        </tr>
-        <tr>
-            <td class="label">Teléfono:</td>
-            <td>{{ $recibo->telefono }}</td>
+            <td>{{ $recibo->nombre }}</td>
         </tr>
         <tr>
             <td class="label">Concepto:</td>
@@ -45,12 +41,12 @@
         </tr>
         <tr>
             <td class="label">Importe:</td>
-            <td class="amount">{{ number_format($recibo->importe, 2, ',', '.') }} €</td>
+            <td class="amount">{{ number_format($recibo->cantidad, 2, ',', '.') }} €</td>
         </tr>
     </table>
 
     <div class="footer">
-        <p>¡Muchas gracias por tu colaboración con las fiestas!</p>
+        <p>Moltes gràcies</p>
     </div>
 
 </body>

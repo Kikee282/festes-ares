@@ -28,8 +28,8 @@ const submit = () => {
 };
 
 const eliminarRecibo = (id) => {
-    if (confirm('¿Estás seguro de que quieres eliminar este recibo?')) {
-        router.delete(route('recibos.destroy', id), {
+    if (confirm("¿Estás seguro de que quieres eliminar este recibo?")) {
+        router.delete(route("recibos.destroy", id), {
             preserveScroll: true,
         });
     }
@@ -50,6 +50,44 @@ const exportarExcel = () => {
         anio: props.anioSeleccionado,
     });
 };
+
+const enviarPorWhatsapp = (recibo) => {
+    // 1. Pedimos el número mediante el prompt
+    const numeroEntrado = prompt('Introduce el número de teléfono para enviar el recibo (ej: 612345678):');
+
+    // Si le da a cancelar o lo deja vacío, nos salimos
+    if (!numeroEntrado) return;
+
+    // 2. Limpiamos espacios y letras
+    const telefonoLimpio = numeroEntrado.replace(/\D/g, '');
+
+    if (!telefonoLimpio) {
+        alert('Por favor, introduce un número válido.');
+        return;
+    }
+
+    // 3. Formateamos el número (+34 España)
+    const numeroFinal = telefonoLimpio.startsWith('34') ? telefonoLimpio : `34${telefonoLimpio}`;
+
+    // 4. Construimos la URL completa del PDF (usamos la ruta de tu Laravel)
+    const baseUrl = window.location.origin;
+    const urlPdf = `${baseUrl}/recibos/${recibo.id}/pdf`;
+
+    // 5. Redactamos el texto del mensaje
+    const mensaje = `Hola!, adjunte el rebut del pagament de les festes d'Ares:\n${urlPdf}\n\nmoltes gràcies!`;
+
+    // 6. Creamos el enlace wa.me
+    const urlWhatsapp = `https://wa.me/${numeroFinal}?text=${encodeURIComponent(mensaje)}`;
+
+    // 7. Intentamos abrir en pestaña nueva. Si el navegador lo bloquea, redirigimos en la misma.
+    const nuevaVentana = window.open(urlWhatsapp, '_blank');
+    
+    if (!nuevaVentana || nuevaVentana.closed || typeof nuevaVentana.closed === 'undefined') {
+        // Si el bloqueo de pop-ups bloqueó window.open, enviamos en la pestaña actual:
+        window.location.href = urlWhatsapp;
+    }
+};
+
 </script>
 
 <template>
@@ -272,7 +310,11 @@ const exportarExcel = () => {
                                     >
                                         Fecha
                                     </th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                                    <th
+                                        class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
+                                        Acciones
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
@@ -302,16 +344,39 @@ const exportarExcel = () => {
                                     >
                                         {{ recibo.fecha }}
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-    <button 
-        @click="eliminarRecibo(recibo.id)" 
-        type="button"
-        style="background-color: #dc2626; color: #ffffff;"
-        class="inline-flex items-center px-3 py-1 border border-transparent rounded-md font-semibold text-xs uppercase tracking-widest hover:opacity-90 active:opacity-100 transition ease-in-out duration-150 cursor-pointer"
-    >
-        Eliminar
-    </button>
-</td>
+                                    <td
+                                        class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
+                                    >
+                                        <button
+                                            @click="eliminarRecibo(recibo.id)"
+                                            type="button"
+                                            style="
+                                                background-color: #dc2626;
+                                                color: #ffffff;
+                                            "
+                                            class="inline-flex items-center px-3 py-1 border border-transparent rounded-md font-semibold text-xs uppercase tracking-widest hover:opacity-90 active:opacity-100 transition ease-in-out duration-150 cursor-pointer"
+                                        >
+                                            Eliminar
+                                        </button>
+                                    </td>
+                                    <td class="px-4 py-2 border-b text-center">
+                                        <!-- Botón pequeño en la tabla -->
+                                        <button
+                                            @click="enviarPorWhatsapp(recibo)"
+                                            title="Enviar recibo por WhatsApp"
+                                            class="inline-flex items-center gap-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-semibold py-1.5 px-3 rounded-lg text-xs transition-colors"
+                                        >
+                                            <svg
+                                                class="w-4 h-4 fill-current text-emerald-600"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"
+                                                />
+                                            </svg>
+                                            <span>WhatsApp</span>
+                                        </button>
+                                    </td>
                                 </tr>
                                 <tr v-if="recibos.length === 0">
                                     <td
