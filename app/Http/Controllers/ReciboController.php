@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\URL;
 
 class ReciboController extends Controller
 {
@@ -17,6 +18,11 @@ class ReciboController extends Controller
 
         $recibos = Recibo::where('anio', $anio)->orderBy('numero', 'desc')->get();
         $aniosDisponibles = Recibo::select('anio')->distinct()->pluck('anio');
+
+        $recibos->transform(function ($recibo) {
+            $recibo->url_pdf = URL::signedRoute('recibos.pdf', ['id' => $recibo->id]);
+            return $recibo;
+        });
 
         return Inertia::render('Recibos/Index', [
             'recibos' => $recibos,
@@ -55,13 +61,19 @@ class ReciboController extends Controller
     }
 
     public function pdf($id)
-    {
-        $recibo = Recibo::findOrFail($id);
+{
+    $recibo = Recibo::findOrFail($id);
 
-        // Carga la vista blade pasándole los datos del recibo
-        $pdf = Pdf::loadView('pdf.recibo', compact('recibo'));
+    // 1. Limpiamos el nombre para evitar caracteres no válidos en archivos (/ \ : * ? " < > |)
+    $nombreLimpio = preg_replace('/[\/\\\:\*\?"<>\|]/', '', $recibo->nombre);
 
-        // stream() abre el PDF directamente en el navegador
-        return $pdf->stream("recibo-{$recibo->id}.pdf");
-    }
+    // 2. Construimos el nombre del archivo PDF (ej: Recibo - Juan Perez.pdf)
+    $nombreArchivo = "Recibo - {$nombreLimpio}.pdf";
+
+    // 3. Cargamos la vista de DomPDF
+    $pdf = Pdf::loadView('pdf.recibo', compact('recibo'));
+
+    // 4. Pasamos el nombre personalizado a stream()
+    return $pdf->stream($nombreArchivo);
+}
 }

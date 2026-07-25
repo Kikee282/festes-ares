@@ -19,7 +19,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/tickets/{ticket}', [TicketController::class, 'destroy'])->name('tickets.destroy');
 });
 
-Route::get('/recibos/{id}/pdf', [ReciboController::class, 'pdf'])->name('recibos.pdf');
+Route::get('/recibos/{id}/pdf', [ReciboController::class, 'pdf'])
+    ->name('recibos.pdf')
+    ->middleware('signed');
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [

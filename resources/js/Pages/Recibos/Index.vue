@@ -53,25 +53,29 @@ const exportarExcel = () => {
 
 const enviarPorWhatsapp = (recibo) => {
     // 1. Pedimos el número mediante el prompt
-    const numeroEntrado = prompt('Introduce el número de teléfono para enviar el recibo (ej: 612345678):');
+    const numeroEntrado = prompt(
+        "Introduce el número de teléfono para enviar el recibo (ej: 612345678):",
+    );
 
     // Si le da a cancelar o lo deja vacío, nos salimos
     if (!numeroEntrado) return;
 
     // 2. Limpiamos espacios y letras
-    const telefonoLimpio = numeroEntrado.replace(/\D/g, '');
+    const telefonoLimpio = numeroEntrado.replace(/\D/g, "");
 
     if (!telefonoLimpio) {
-        alert('Por favor, introduce un número válido.');
+        alert("Por favor, introduce un número válido.");
         return;
     }
 
     // 3. Formateamos el número (+34 España)
-    const numeroFinal = telefonoLimpio.startsWith('34') ? telefonoLimpio : `34${telefonoLimpio}`;
+    const numeroFinal = telefonoLimpio.startsWith("34")
+        ? telefonoLimpio
+        : `34${telefonoLimpio}`;
 
     // 4. Construimos la URL completa del PDF (usamos la ruta de tu Laravel)
     const baseUrl = window.location.origin;
-    const urlPdf = `${baseUrl}/recibos/${recibo.id}/pdf`;
+    const urlPdf = recibo.url_pdf;
 
     // 5. Redactamos el texto del mensaje
     const mensaje = `Hola!, adjunte el rebut del pagament de les festes d'Ares:\n${urlPdf}\n\nmoltes gràcies!`;
@@ -80,14 +84,17 @@ const enviarPorWhatsapp = (recibo) => {
     const urlWhatsapp = `https://wa.me/${numeroFinal}?text=${encodeURIComponent(mensaje)}`;
 
     // 7. Intentamos abrir en pestaña nueva. Si el navegador lo bloquea, redirigimos en la misma.
-    const nuevaVentana = window.open(urlWhatsapp, '_blank');
-    
-    if (!nuevaVentana || nuevaVentana.closed || typeof nuevaVentana.closed === 'undefined') {
+    const nuevaVentana = window.open(urlWhatsapp, "_blank");
+
+    if (
+        !nuevaVentana ||
+        nuevaVentana.closed ||
+        typeof nuevaVentana.closed === "undefined"
+    ) {
         // Si el bloqueo de pop-ups bloqueó window.open, enviamos en la pestaña actual:
         window.location.href = urlWhatsapp;
     }
 };
-
 </script>
 
 <template>
@@ -376,6 +383,26 @@ const enviarPorWhatsapp = (recibo) => {
                                             </svg>
                                             <span>WhatsApp</span>
                                         </button>
+                                    </td>
+                                    <td>
+                                        <!-- Botón para Abrir/Ver PDF directamente -->
+                                        <a
+                                            :href="recibo.url_pdf"
+                                            target="_blank"
+                                            title="Ver en PDF"
+                                            class="inline-flex items-center gap-1.5 bg-blue-100 hover:bg-blue-200 text-blue-800 font-semibold py-1.5 px-3 rounded-lg text-xs transition-colors"
+                                        >
+                                            <!-- Icono de documento / PDF -->
+                                            <svg
+                                                class="w-4 h-4 fill-current text-blue-600"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"
+                                                />
+                                            </svg>
+                                            <span>Ver PDF</span>
+                                        </a>
                                     </td>
                                 </tr>
                                 <tr v-if="recibos.length === 0">
