@@ -13,6 +13,9 @@ return new class extends Migration
     {
         Schema::create('tickets', function (Blueprint $table) {
             $table->id();
+            $table->string('nombre_original');
+            $table->string('ruta_archivo');
+            $table->integer('anio'); // Para organizar las fotos por años también
             $table->timestamps();
         });
     }

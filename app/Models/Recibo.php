@@ -6,5 +6,5 @@ use Illuminate\Database\Eloquent\Model;
 
 class Recibo extends Model
 {
-    //
+    protected $fillable = ['numero', 'nombre', 'cantidad', 'concepto', 'fecha', 'anio'];
 }

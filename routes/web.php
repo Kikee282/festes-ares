@@ -4,6 +4,20 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\ReciboController;
+use App\Http\Controllers\TicketController;
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    // Recibos
+    Route::get('/recibos', [ReciboController::class, 'index'])->name('recibos.index');
+    Route::post('/recibos', [ReciboController::class, 'store'])->name('recibos.store');
+    Route::get('/recibos/export/{anio}', [ReciboController::class, 'exportarExcel'])->name('recibos.export');
+    Route::delete('/recibos/{recibo}', [ReciboController::class, 'destroy'])->name('recibos.destroy');
+    // Tickets
+    Route::get('/tickets', [TicketController::class, 'index'])->name('tickets.index');
+    Route::post('/tickets', [TicketController::class, 'store'])->name('tickets.store');
+    Route::delete('/tickets/{ticket}', [TicketController::class, 'destroy'])->name('tickets.destroy');
+});
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
