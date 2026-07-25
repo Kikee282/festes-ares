@@ -126,7 +126,7 @@ const enviarPorWhatsapp = (recibo) => {
                             >
                             <input
                                 v-model="form.numero"
-                                type="number"
+                                type="text"
                                 required
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                                 placeholder="Ej: 1"

@@ -34,12 +34,17 @@ class ReciboController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'numero' => 'required|integer',
+            'numero' => 'required|string|max:50',
             'nombre' => 'required|string|max:255',
             'cantidad' => 'required|numeric',
             'concepto' => 'required|string|max:255',
             'fecha' => 'required|date',
         ]);
+
+        $dosDigitosAnio = date('y', strtotime($validated['fecha'])); // '26'
+        if (!str_contains($validated['numero'], '-')) {
+            $validated['numero'] = $dosDigitosAnio . '-' . $validated['numero'];
+        }
 
         $validated['anio'] = date('Y', strtotime($validated['fecha']));
 

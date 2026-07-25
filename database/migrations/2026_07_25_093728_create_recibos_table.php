@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('recibos', function (Blueprint $table) {
             $table->id();
-            $table->integer('numero');
+            $table->string('numero');
             $table->string('nombre');
             $table->decimal('cantidad', 8, 2);
             $table->string('concepto');
