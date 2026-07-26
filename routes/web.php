@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\ReciboController;
 use App\Http\Controllers\TicketController;
-
+use App\Http\Controllers\LoteriaController;
 
 Route::middleware(['auth', 'verified'])->group(function () {
     // Recibos
@@ -20,6 +20,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/tickets', [TicketController::class, 'store'])->name('tickets.store');
     Route::delete('/tickets/{ticket}', [TicketController::class, 'destroy'])->name('tickets.destroy');
     Route::get('/tickets/exportar/{anio}', [TicketController::class, 'exportarExcel'])->name('tickets.exportar');
+
+    //Loteria
+    Route::get('/loteria', [LoteriaController::class, 'index'])->name('loteria.index');
+    Route::post('/loteria', [LoteriaController::class, 'store'])->name('loteria.store');
+    Route::put('/loteria/{loteria}', [LoteriaController::class, 'update'])->name('loteria.update');
+    Route::delete('/loteria/{loteria}', [LoteriaController::class, 'destroy'])->name('loteria.destroy');
 });
 
 Route::get('/recibos/{id}/pdf', [ReciboController::class, 'pdf'])

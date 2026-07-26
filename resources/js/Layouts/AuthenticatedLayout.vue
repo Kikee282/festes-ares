@@ -49,6 +49,12 @@ const showingNavigationDropdown = ref(false);
                                 >
                                     Tickets
                                 </NavLink>
+                                <NavLink
+                                    :href="route('loteria.index')"
+                                    :active="route().current('loteria.*')"
+                                >
+                                    Lotería
+                                </NavLink>
                             </div>
                         </div>
 
@@ -150,21 +156,37 @@ const showingNavigationDropdown = ref(false);
                     class="sm:hidden"
                 >
                     <div class="pt-2 pb-3 space-y-1">
-    <!-- Pestaña Dashboard Móvil -->
-    <ResponsiveNavLink :href="route('dashboard')" :active="route().current('dashboard')">
-        Dashboard
-    </ResponsiveNavLink>
+                        <!-- Pestaña Dashboard Móvil -->
+                        <ResponsiveNavLink
+                            :href="route('dashboard')"
+                            :active="route().current('dashboard')"
+                        >
+                            Dashboard
+                        </ResponsiveNavLink>
 
-    <!-- 👈 Pestaña Recibos Móvil -->
-    <ResponsiveNavLink :href="route('recibos.index')" :active="route().current('recibos.*')">
-        Recibos
-    </ResponsiveNavLink>
+                        <!-- 👈 Pestaña Recibos Móvil -->
+                        <ResponsiveNavLink
+                            :href="route('recibos.index')"
+                            :active="route().current('recibos.*')"
+                        >
+                            Recibos
+                        </ResponsiveNavLink>
 
-    <!-- 👈 Pestaña Tickets Móvil -->
-    <ResponsiveNavLink :href="route('tickets.index')" :active="route().current('tickets.*')">
-        Tickets
-    </ResponsiveNavLink>
-</div>
+                        <!-- 👈 Pestaña Tickets Móvil -->
+                        <ResponsiveNavLink
+                            :href="route('tickets.index')"
+                            :active="route().current('tickets.*')"
+                        >
+                            Tickets
+                        </ResponsiveNavLink>
+
+                        <ResponsiveNavLink
+                            :href="route('loteria.index')"
+                            :active="route().current('loteria.*')"
+                        >
+                            Lotería
+                        </ResponsiveNavLink>
+                    </div>
 
                     <!-- Responsive Settings Options -->
                     <div class="border-t border-gray-200 pb-1 pt-4">
