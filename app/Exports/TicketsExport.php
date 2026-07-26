@@ -65,14 +65,9 @@ class TicketsExport implements FromCollection, WithHeadings, WithEvents, ShouldA
 
                 $totalRow = $highestRow + 1;
 
-                // 1. Asignamos la etiqueta y la fórmula de suma
                 $sheet->setCellValue("C{$totalRow}", 'TOTAL GASTOS:');
                 $sheet->setCellValue("D{$totalRow}", "=SUM(D2:D{$highestRow})");
 
-                // 2. Le decimos a Excel que fuerce el recálculo al abrir el documento
-                $sheet->getParent()->getCalculationEngine()->setCalculationCacheEnabled(false);
-
-                // 3. Aplicamos negrita a encabezados y al subtotal
                 $sheet->getStyle("A1:D1")->getFont()->setBold(true);
                 $sheet->getStyle("C{$totalRow}:D{$totalRow}")->getFont()->setBold(true);
             },

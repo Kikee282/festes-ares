@@ -19,14 +19,13 @@ class TicketController extends Controller
             ->orderBy('fecha', 'desc')
             ->get();
 
-        // Convertimos explícitamente a array nativo de enteros
-        $aniosDisponibles = Ticket::whereNotNull('anio')
-            ->distinct()
-            ->pluck('anio')
-            ->map(fn($a) => (int)$a)
+        // Obtenemos los años de forma segura
+        $aniosDisponibles = Ticket::pluck('anio')
+            ->unique()
+            ->values()
             ->toArray();
 
-        // Si la tabla está vacía en producción, forzamos al menos el año actual
+        // Si la tabla está vacía, nos aseguramos de meter el año actual
         if (empty($aniosDisponibles)) {
             $aniosDisponibles = [(int) date('Y')];
         }
@@ -34,7 +33,7 @@ class TicketController extends Controller
         return Inertia::render('Tickets/Index', [
             'tickets'          => $tickets,
             'anioSeleccionado' => $anio,
-            'aniosDisponibles' => array_values($aniosDisponibles),
+            'aniosDisponibles' => $aniosDisponibles,
         ]);
     }
 
@@ -79,4 +78,4 @@ class TicketController extends Controller
             "tickets_gastos_fiestas_{$anio}.xlsx"
         );
     }
-} 
+}
