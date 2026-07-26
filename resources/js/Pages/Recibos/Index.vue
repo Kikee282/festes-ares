@@ -12,11 +12,12 @@ const props = defineProps({
 });
 
 // Formulario para crear un nuevo recibo (número autoincremental en backend)
+const anioActual = new Date().getFullYear();
 const form = useForm({
     nombre: "",
     telefono: "",
     cantidad: "",
-    concepto: "",
+    concepto: `Cuota Festes ${anioActual}`,
     metodo_pago: "metalico", // 👈 Por defecto Metálico
     fecha: new Date().toISOString().substr(0, 10),
 });
@@ -39,6 +40,7 @@ const submit = () => {
     form.post(route("recibos.store"), {
         onSuccess: () => {
             form.reset("nombre", "telefono", "cantidad", "concepto", "metodo_pago");
+            form.concepto = `Cuota Festes ${anioActual}`;
             form.metodo_pago = "metalico";
         },
     });
