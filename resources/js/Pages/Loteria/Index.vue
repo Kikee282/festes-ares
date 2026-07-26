@@ -740,11 +740,15 @@ const loteriasFiltradas = computed(() => {
                                 </div>
                             </td>
                         </tr>
-                        v-if="loteriasFiltradas.length === 0">
-                        <td colspan="9" class="p-6 text-center text-gray-500">
-                            No hay registros de lotería que coincidan con el
-                            filtro seleccionado.
-                        </td>
+                        <tr v-if="loteriasFiltradas.length === 0">
+                            <td
+                                colspan="9"
+                                class="p-6 text-center text-gray-500"
+                            >
+                                No hay registros de lotería que coincidan con el
+                                filtro seleccionado.
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
