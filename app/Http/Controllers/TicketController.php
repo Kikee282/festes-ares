@@ -6,22 +6,35 @@ use App\Models\Ticket;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
-use App\Exports\TicketsExport; // 👈 Importamos el Export
-use Maatwebsite\Excel\Facades\Excel; // 👈 Importamos la Facade de Excel
+use App\Exports\TicketsExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class TicketController extends Controller
 {
     public function index(Request $request)
     {
-        $anio = $request->input('anio', date('Y'));
+        $anio = (int) $request->input('anio', date('Y'));
 
-        $tickets = Ticket::where('anio', $anio)->orderBy('fecha', 'desc')->get();
-        $aniosDisponibles = Ticket::select('anio')->distinct()->pluck('anio');
+        $tickets = Ticket::where('anio', $anio)
+            ->orderBy('fecha', 'desc')
+            ->get();
+
+        // Convertimos explícitamente a array nativo de enteros
+        $aniosDisponibles = Ticket::whereNotNull('anio')
+            ->distinct()
+            ->pluck('anio')
+            ->map(fn($a) => (int)$a)
+            ->toArray();
+
+        // Si la tabla está vacía en producción, forzamos al menos el año actual
+        if (empty($aniosDisponibles)) {
+            $aniosDisponibles = [(int) date('Y')];
+        }
 
         return Inertia::render('Tickets/Index', [
-            'tickets' => $tickets,
-            'anioSeleccionado' => (int)$anio,
-            'aniosDisponibles' => $aniosDisponibles
+            'tickets'          => $tickets,
+            'anioSeleccionado' => $anio,
+            'aniosDisponibles' => array_values($aniosDisponibles),
         ]);
     }
 
@@ -32,12 +45,11 @@ class TicketController extends Controller
             'importe'  => 'required|numeric|min:0',
             'concepto' => 'required|string|max:255',
             'fecha'    => 'required|date',
-            'imagen'   => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096', // Máx 4MB
+            'imagen'   => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
         ]);
 
-        $validated['anio'] = date('Y', strtotime($validated['fecha']));
+        $validated['anio'] = (int) date('Y', strtotime($validated['fecha']));
 
-        // Si se sube una imagen, la guardamos en storage/app/public/tickets
         if ($request->hasFile('imagen')) {
             $path = $request->file('imagen')->store('tickets', 'public');
             $validated['imagen_path'] = '/storage/' . $path;
@@ -50,7 +62,6 @@ class TicketController extends Controller
 
     public function destroy(Ticket $ticket)
     {
-        // Borramos la imagen del disco si existe
         if ($ticket->imagen_path) {
             $relativePath = str_replace('/storage/', '', $ticket->imagen_path);
             Storage::disk('public')->delete($relativePath);
