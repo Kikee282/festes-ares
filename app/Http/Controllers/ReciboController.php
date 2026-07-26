@@ -32,28 +32,32 @@ class ReciboController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'numero' => 'required|string|max:50',
-            'nombre' => 'required|string|max:255',
-            'telefono' => 'nullable|string|max:20',
-            'cantidad' => 'required|numeric',
-            'concepto' => 'required|string|max:255',
-            'fecha' => 'required|date',
-        ]);
+{
+    // 1. Ya NO pedimos 'numero' en la validación porque se genera solo
+    $validated = $request->validate([
+        'nombre'   => 'required|string|max:255',
+        'telefono' => 'nullable|string|max:20',
+        'cantidad' => 'required|numeric',
+        'concepto' => 'required|string|max:255',
+        'fecha'    => 'required|date',
+    ]);
 
-        $dosDigitosAnio = date('y', strtotime($validated['fecha'])); // '26'
-        if (!str_contains($validated['numero'], '-')) {
-            $validated['numero'] = $dosDigitosAnio . '-' . $validated['numero'];
-        }
+    // 2. Extraemos el año y los dos últimos dígitos (ej: 2026 -> "26")
+    $anioCompleto = date('Y', strtotime($validated['fecha']));
+    $dosDigitosAnio = date('y', strtotime($validated['fecha']));
 
-        $validated['anio'] = date('Y', strtotime($validated['fecha']));
+    // 3. Obtenemos cuántos recibos existen ya registrados para ese año
+    $ultimoContador = Recibo::where('anio', $anioCompleto)->count();
+    $siguienteNumero = $ultimoContador + 1;
 
-        Recibo::create($validated);
+    // 4. Asignamos el número formateado (ej: "26-1", "26-2") y el año
+    $validated['numero'] = $dosDigitosAnio . '-' . $siguienteNumero;
+    $validated['anio']   = $anioCompleto;
 
-        return redirect()->back();
-    }
+    Recibo::create($validated);
 
+    return redirect()->back();
+}
     public function exportarExcel($anio)
     {
         return Excel::download(new RecibosExport($anio), "recibos_fiestas_{$anio}.xlsx");
@@ -68,8 +72,8 @@ class ReciboController extends Controller
 
     public function update(Request $request, Recibo $recibo)
 {
+    // En la edición no sobreescribimos el 'numero' original, solo los datos modificables
     $validated = $request->validate([
-        'numero'   => 'required|string|max:50',
         'nombre'   => 'required|string|max:255',
         'telefono' => 'nullable|string|max:20',
         'cantidad' => 'required|numeric',
@@ -77,7 +81,6 @@ class ReciboController extends Controller
         'fecha'    => 'required|date',
     ]);
 
-    // Recalculamos el año por si cambiaron la fecha
     $validated['anio'] = date('Y', strtotime($validated['fecha']));
 
     $recibo->update($validated);

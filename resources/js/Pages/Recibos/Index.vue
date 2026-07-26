@@ -13,7 +13,6 @@ const props = defineProps({
 
 // Formulario para crear un nuevo recibo
 const form = useForm({
-    numero: "",
     nombre: "",
     telefono: "",
     cantidad: "",
@@ -165,18 +164,6 @@ const enviarPorWhatsapp = (recibo) => {
                 @submit.prevent="submit"
                 class="bg-white p-4 sm:p-6 rounded-xl shadow-md mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
             >
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Nº Recibo</label>
-                    <input
-                        v-model="form.numero"
-                        type="text"
-                        required
-                        placeholder="Ej: 1"
-                        class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
-                    />
-                    <span v-if="form.errors.numero" class="text-xs text-red-500">{{ form.errors.numero }}</span>
-                </div>
-
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Nombre / Casa</label>
                     <input
