@@ -22,6 +22,5 @@ class DatabaseSeeder extends Seeder
                 'password' => Hash::make('FestesAres69'), // Cambia por tu clave deseada
             ]
         );
-    ]);
     }
 }
