@@ -1,7 +1,7 @@
 <script setup>
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, useForm, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { ref } from "vue";
+import { Head, useForm, router } from "@inertiajs/vue3";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 
 const props = defineProps({
     tickets: Array,
@@ -9,203 +9,220 @@ const props = defineProps({
     aniosDisponibles: Array,
 });
 
-// Formulario para subir imagen
 const form = useForm({
+    nombre: "",
+    importe: "",
+    concepto: "",
+    fecha: new Date().toISOString().substr(0, 10),
     imagen: null,
 });
 
-// Estado para el modal del visor de fotos
-const ticketSeleccionado = ref(null);
-
-const abrirModal = (ticket) => {
-    ticketSeleccionado.value = ticket;
+const handleFileChange = (e) => {
+    form.imagen = e.target.files[0];
 };
 
-const cerrarModal = () => {
-    ticketSeleccionado.value = null;
-};
-
-const submit = () => {
-    form.post(route('tickets.store'), {
+const guardarTicket = () => {
+    form.post(route("tickets.store"), {
+        forceFormData: true, // Necesario para enviar archivos con Inertia
         onSuccess: () => {
-            form.reset('imagen');
-            const fileInput = document.getElementById('input-imagen');
-            if (fileInput) fileInput.value = '';
+            form.reset("nombre", "importe", "concepto", "imagen");
+            // Limpiar el input file en el DOM
+            const fileInput = document.getElementById("input-imagen");
+            if (fileInput) fileInput.value = "";
         },
     });
 };
 
-// Cambiar filtro por año
 const cambiarAnio = (e) => {
-    router.get(route('tickets.index'), { anio: e.target.value }, { preserveState: true });
+    router.get(route("tickets.index"), { anio: e.target.value });
 };
 
-// Eliminar ticket
 const eliminarTicket = (id) => {
-    if (confirm('¿Estás seguro de que deseas borrar esta imagen de ticket?')) {
-        router.delete(route('tickets.destroy', id), {
-            preserveScroll: true,
-            onSuccess: () => {
-                if (ticketSeleccionado.value?.id === id) {
-                    cerrarModal();
-                }
-            }
-        });
+    if (confirm("¿Seguro que quieres eliminar este ticket?")) {
+        router.delete(route("tickets.destroy", id));
     }
 };
 </script>
 
 <template>
-    <Head title="Tickets y Comprobantes" />
+    <Head title="Gestión de Tickets" />
 
     <AuthenticatedLayout>
         <template #header>
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                Galería de Tickets de Compra
+                Gestión de Tickets - Fiestas
             </h2>
         </template>
-
-        <div class="py-12">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-
-                <!-- SUBIDA DE TICKETS -->
-                <div class="p-6 bg-white shadow sm:rounded-lg">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Subir nuevo Ticket / Factura</h3>
-
-                    <form @submit.prevent="submit" class="flex flex-col sm:flex-row items-end gap-4">
-                        <div class="flex-1 w-full">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Seleccionar foto (JPG, PNG, WEBP)</label>
-                            <input 
-                                id="input-imagen"
-                                type="file" 
-                                @input="form.imagen = $event.target.files[0]"
-                                accept="image/*"
-                                required
-                                class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border border-gray-300 rounded-md cursor-pointer"
-                            />
-                            <span v-if="form.errors.imagen" class="text-xs text-red-500 mt-1 block">{{ form.errors.imagen }}</span>
-                        </div>
-
-                        <button 
-                            type="submit" 
-                            :disabled="form.processing" 
-                            style="background-color: #4f46e5; color: #ffffff;"
-                            class="inline-flex items-center px-4 py-2 border border-transparent rounded-md font-semibold text-xs uppercase tracking-widest hover:opacity-90 active:opacity-100 transition ease-in-out duration-150 cursor-pointer h-10"
+        <div class="max-w-6xl mx-auto p-6">
+            <div class="flex justify-between items-center mb-6">
+                <a
+                    :href="route('tickets.exportar', anioSeleccionado)"
+                    class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow text-sm transition-colors"
+                >
+                    <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                        <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+                    </svg>
+                    <span>Exportar Excel</span>
+                </a>
+                <!-- Filtro por año -->
+                <div class="flex items-center gap-2">
+                    <label class="font-semibold text-gray-700">Año:</label>
+                    <select
+                        :value="anioSeleccionado"
+                        @change="cambiarAnio"
+                        class="border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        <option
+                            v-for="a in aniosDisponibles"
+                            :key="a"
+                            :value="a"
                         >
-                            Subir Foto
-                        </button>
-                    </form>
+                            {{ a }}
+                        </option>
+                    </select>
                 </div>
-
-                <!-- GALERÍA DE IMÁGENES TIPO GOOGLE DRIVE -->
-                <div class="p-6 bg-white shadow sm:rounded-lg">
-                    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-                        <h3 class="text-lg font-medium text-gray-900">Tickets Guardados</h3>
-
-                        <!-- Filtro por año -->
-                        <div class="flex items-center space-x-2">
-                            <label class="text-sm font-medium text-gray-700">Año:</label>
-                            <select :value="anioSeleccionado" @change="cambiarAnio" class="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                                <option v-for="a in aniosDisponibles" :key="a" :value="a">{{ a }}</option>
-                                <option v-if="!aniosDisponibles.includes(new Date().getFullYear())" :value="new Date().getFullYear()">{{ new Date().getFullYear() }}</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- CUADRÍCULA PEQUEÑA Y COMPACTA -->
-                    <div v-if="tickets.length > 0" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                        <div 
-                            v-for="ticket in tickets" 
-                            :key="ticket.id" 
-                            class="group relative border rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-md transition cursor-pointer border-gray-200"
-                            @click="abrirModal(ticket)"
-                        >
-                            <!-- Miniatura pequeña tipo Drive -->
-                            <div class="w-full h-28 bg-gray-100 overflow-hidden flex items-center justify-center relative">
-                                <img 
-                                    :src="ticket.ruta_archivo" 
-                                    :alt="ticket.nombre_original" 
-                                    class="w-full h-full object-cover group-hover:scale-105 transition duration-200" 
-                                />
-                                <div class="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                                    <span class="text-xs bg-black/70 text-white px-2 py-1 rounded shadow">Ver foto</span>
-                                </div>
-                            </div>
-
-                            <!-- Nombre del archivo -->
-                            <div class="p-2 bg-white flex items-center justify-between border-t border-gray-100">
-                                <span class="text-xs text-gray-700 truncate font-medium w-full" :title="ticket.nombre_original">
-                                    📄 {{ ticket.nombre_original }}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div v-else class="text-center py-8 text-gray-500">
-                        No hay imágenes de tickets subidas para el año {{ anioSeleccionado }}.
-                    </div>
-                </div>
-
             </div>
-        </div>
 
-        <!-- MODAL / LIGHTBOX PARA AMPLIAR LA IMAGEN -->
-        <div 
-            v-if="ticketSeleccionado" 
-            class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 transition-opacity"
-            @click.self="cerrarModal"
-        >
-            <div class="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
-                <!-- Cabecera del modal -->
-                <div class="p-4 border-b flex justify-between items-center bg-gray-50">
-                    <h4 class="text-sm font-semibold text-gray-800 truncate pr-4">
-                        {{ ticketSeleccionado.nombre_original }}
-                    </h4>
-                    <div class="flex items-center space-x-2">
-                        <button 
-                            @click="eliminarTicket(ticketSeleccionado.id)" 
-                            type="button"
-                            style="background-color: #dc2626; color: #ffffff;"
-                            class="px-3 py-1 text-xs rounded font-medium hover:opacity-90 cursor-pointer"
-                        >
-                            Borrar
-                        </button>
-                        <button 
-                            @click="cerrarModal" 
-                            type="button"
-                            class="text-gray-500 hover:text-gray-800 font-bold text-xl px-2 leading-none"
-                        >
-                            ✕
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Cuerpo del modal con la imagen completa -->
-                <div class="p-4 flex-1 overflow-auto flex items-center justify-center bg-gray-900">
-                    <img 
-                        :src="ticketSeleccionado.ruta_archivo" 
-                        :alt="ticketSeleccionado.nombre_original" 
-                        class="max-w-full max-h-[70vh] object-contain rounded"
+            <!-- Formulario de creación -->
+            <form
+                @submit.prevent="guardarTicket"
+                class="bg-white p-6 rounded-xl shadow-md mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+            >
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1"
+                        >Nombre / Establecimiento</label
+                    >
+                    <input
+                        v-model="form.nombre"
+                        type="text"
+                        required
+                        placeholder="Ej: Bar El Compás"
+                        class="w-full border-gray-300 rounded-lg shadow-sm"
                     />
                 </div>
 
-                <!-- Pie del modal -->
-                <div class="p-3 bg-gray-50 border-t flex justify-between items-center">
-                    <a 
-                        :href="ticketSeleccionado.ruta_archivo" 
-                        target="_blank" 
-                        class="text-xs text-indigo-600 hover:underline font-medium"
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1"
+                        >Importe (€)</label
                     >
-                        Abrir en pestaña nueva ↗
-                    </a>
-                    <button 
-                        @click="cerrarModal" 
-                        type="button"
-                        class="px-4 py-1.5 bg-gray-200 text-gray-800 text-xs font-semibold rounded hover:bg-gray-300"
+                    <input
+                        v-model="form.importe"
+                        type="number"
+                        step="0.01"
+                        required
+                        placeholder="0.00"
+                        class="w-full border-gray-300 rounded-lg shadow-sm"
+                    />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1"
+                        >Concepto</label
                     >
-                        Cerrar
+                    <input
+                        v-model="form.concepto"
+                        type="text"
+                        required
+                        placeholder="Ej: Compra de refrescos"
+                        class="w-full border-gray-300 rounded-lg shadow-sm"
+                    />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1"
+                        >Fecha</label
+                    >
+                    <input
+                        v-model="form.fecha"
+                        type="date"
+                        required
+                        class="w-full border-gray-300 rounded-lg shadow-sm"
+                    />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1"
+                        >Imagen del Ticket (Opcional)</label
+                    >
+                    <input
+                        id="input-imagen"
+                        type="file"
+                        @change="handleFileChange"
+                        accept="image/*"
+                        class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    />
+                </div>
+
+                <div class="md:col-span-2 lg:col-span-1 flex items-end">
+                    <button
+                        type="submit"
+                        :disabled="form.processing"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow transition-colors"
+                    >
+                        Guardar Ticket
                     </button>
                 </div>
+            </form>
+
+            <!-- Tabla de tickets -->
+            <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-gray-100 text-gray-700 uppercase text-xs">
+                        <tr>
+                            <th class="p-4">Fecha</th>
+                            <th class="p-4">Establecimiento</th>
+                            <th class="p-4">Concepto</th>
+                            <th class="p-4">Importe</th>
+                            <th class="p-4 text-center">Imagen</th>
+                            <th class="p-4 text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 text-sm">
+                        <tr
+                            v-for="ticket in tickets"
+                            :key="ticket.id"
+                            class="hover:bg-gray-50"
+                        >
+                            <td class="p-4 font-medium">{{ ticket.fecha }}</td>
+                            <td class="p-4">{{ ticket.nombre }}</td>
+                            <td class="p-4 text-gray-600">
+                                {{ ticket.concepto }}
+                            </td>
+                            <td class="p-4 font-bold text-red-600">
+                                -{{ ticket.importe }} €
+                            </td>
+                            <td class="p-4 text-center">
+                                <a
+                                    v-if="ticket.imagen_path"
+                                    :href="ticket.imagen_path"
+                                    target="_blank"
+                                    class="inline-flex items-center text-blue-600 hover:underline"
+                                >
+                                    📷 Ver
+                                </a>
+                                <span v-else class="text-gray-400"
+                                    >Sin foto</span
+                                >
+                            </td>
+                            <td class="p-4 text-center">
+                                <button
+                                    @click="eliminarTicket(ticket.id)"
+                                    class="text-red-600 hover:text-red-800 font-semibold"
+                                >
+                                    Eliminar
+                                </button>
+                            </td>
+                        </tr>
+                        <tr v-if="tickets.length === 0">
+                            <td
+                                colspan="6"
+                                class="p-6 text-center text-gray-500"
+                            >
+                                No hay tickets registrados en este año.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </AuthenticatedLayout>

@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('numero');
             $table->string('nombre');
+            $table->string('telefono')->nullable();
             $table->decimal('cantidad', 8, 2);
             $table->string('concepto');
             $table->date('fecha');

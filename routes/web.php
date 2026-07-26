@@ -7,6 +7,7 @@ use Inertia\Inertia;
 use App\Http\Controllers\ReciboController;
 use App\Http\Controllers\TicketController;
 
+
 Route::middleware(['auth', 'verified'])->group(function () {
     // Recibos
     Route::get('/recibos', [ReciboController::class, 'index'])->name('recibos.index');
@@ -17,6 +18,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/tickets', [TicketController::class, 'index'])->name('tickets.index');
     Route::post('/tickets', [TicketController::class, 'store'])->name('tickets.store');
     Route::delete('/tickets/{ticket}', [TicketController::class, 'destroy'])->name('tickets.destroy');
+    Route::get('/tickets/exportar/{anio}', [TicketController::class, 'exportarExcel'])->name('tickets.exportar');
 });
 
 Route::get('/recibos/{id}/pdf', [ReciboController::class, 'pdf'])
@@ -42,4 +44,4 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

@@ -10,15 +10,18 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up(): void
-    {
-        Schema::create('tickets', function (Blueprint $table) {
-            $table->id();
-            $table->string('nombre_original');
-            $table->string('ruta_archivo');
-            $table->integer('anio'); // Para organizar las fotos por años también
-            $table->timestamps();
-        });
-    }
+{
+    Schema::create('tickets', function (Blueprint $table) {
+        $table->id();
+        $table->string('nombre');                  // Proveedor o nombre del establecimiento
+        $table->decimal('importe', 8, 2);          // Cantidad gastada
+        $table->string('concepto');                // Descripción del gasto
+        $table->date('fecha');                     // Fecha del ticket
+        $table->string('imagen_path')->nullable(); // Ruta de la imagen (opcional)
+        $table->integer('anio');                   // Año del ejercicio
+        $table->timestamps();
+    });
+}
 
     /**
      * Reverse the migrations.
