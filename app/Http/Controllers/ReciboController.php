@@ -39,6 +39,7 @@ class ReciboController extends Controller
         'telefono' => 'nullable|string|max:20',
         'cantidad' => 'required|numeric',
         'concepto' => 'required|string|max:255',
+        'metodo_pago' => 'required|in:metalico,bizum',
         'fecha'    => 'required|date',
     ]);
 
@@ -78,6 +79,7 @@ class ReciboController extends Controller
         'telefono' => 'nullable|string|max:20',
         'cantidad' => 'required|numeric',
         'concepto' => 'required|string|max:255',
+        'metodo_pago' => 'required|in:metalico,bizum',
         'fecha'    => 'required|date',
     ]);
 

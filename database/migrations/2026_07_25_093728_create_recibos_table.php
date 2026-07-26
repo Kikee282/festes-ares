@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('telefono')->nullable();
             $table->decimal('cantidad', 8, 2);
             $table->string('concepto');
+            $table->enum('metodo_pago', ['metalico', 'bizum'])->default('metalico');
             $table->date('fecha');
             $table->integer('anio'); // Para filtrar por año fácilmente
             $table->timestamps();

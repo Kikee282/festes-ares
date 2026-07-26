@@ -11,12 +11,13 @@ const props = defineProps({
     aniosDisponibles: Array,
 });
 
-// Formulario para crear un nuevo recibo
+// Formulario para crear un nuevo recibo (número autoincremental en backend)
 const form = useForm({
     nombre: "",
     telefono: "",
     cantidad: "",
     concepto: "",
+    metodo_pago: "metalico", // 👈 Por defecto Metálico
     fecha: new Date().toISOString().substr(0, 10),
 });
 
@@ -30,13 +31,15 @@ const editForm = useForm({
     telefono: "",
     cantidad: "",
     concepto: "",
+    metodo_pago: "metalico",
     fecha: "",
 });
 
 const submit = () => {
     form.post(route("recibos.store"), {
         onSuccess: () => {
-            form.reset("numero", "nombre", "telefono", "cantidad", "concepto");
+            form.reset("nombre", "telefono", "cantidad", "concepto", "metodo_pago");
+            form.metodo_pago = "metalico";
         },
     });
 };
@@ -48,6 +51,7 @@ const abrirEditar = (recibo) => {
     editForm.telefono = recibo.telefono || "";
     editForm.cantidad = recibo.cantidad;
     editForm.concepto = recibo.concepto;
+    editForm.metodo_pago = recibo.metodo_pago || "metalico";
     editForm.fecha = recibo.fecha;
     mostrandoModal.value = true;
 };
@@ -122,7 +126,7 @@ const enviarPorWhatsapp = (recibo) => {
         </template>
 
         <div class="max-w-6xl mx-auto p-4 sm:p-6">
-            <!-- CABECERA: TÍTULO, BOTÓN Y FILTRO (RESPONSIVE) -->
+            <!-- CABECERA DE PÁGINA -->
             <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 mb-6">
                 <h1 class="text-2xl font-bold text-gray-800 text-center sm:text-left">Historial de Recibos</h1>
 
@@ -159,7 +163,7 @@ const enviarPorWhatsapp = (recibo) => {
                 </div>
             </div>
 
-            <!-- FORMULARIO DE REGISTRO (RESPONSIVE GRID) -->
+            <!-- FORMULARIO DE REGISTRO -->
             <form
                 @submit.prevent="submit"
                 class="bg-white p-4 sm:p-6 rounded-xl shadow-md mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
@@ -212,6 +216,19 @@ const enviarPorWhatsapp = (recibo) => {
                     <span v-if="form.errors.concepto" class="text-xs text-red-500">{{ form.errors.concepto }}</span>
                 </div>
 
+                <!-- 👈 CAMPO MÉTODO DE PAGO -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Método de Pago</label>
+                    <select
+                        v-model="form.metodo_pago"
+                        class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    >
+                        <option value="metalico">💵 Metálico</option>
+                        <option value="bizum">📱 Bizum</option>
+                    </select>
+                    <span v-if="form.errors.metodo_pago" class="text-xs text-red-500">{{ form.errors.metodo_pago }}</span>
+                </div>
+
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
                     <input
@@ -234,7 +251,7 @@ const enviarPorWhatsapp = (recibo) => {
                 </div>
             </form>
 
-            <!-- VISTA DE MÓVIL: TARJETAS (SE MUESTRA SOLO EN PANTALLAS PEQUEÑAS) -->
+            <!-- TARJETAS MÓVIL -->
             <div class="block md:hidden space-y-4 mb-8">
                 <div 
                     v-for="recibo in recibos" 
@@ -246,7 +263,17 @@ const enviarPorWhatsapp = (recibo) => {
                             <span class="text-xs font-bold text-gray-400">#{{ recibo.numero }}</span>
                             <h3 class="font-bold text-gray-900 text-base leading-tight">{{ recibo.nombre }}</h3>
                         </div>
-                        <span class="font-extrabold text-green-600 text-base">+{{ recibo.cantidad }} €</span>
+                        <div class="text-right">
+                            <span class="font-extrabold text-green-600 text-base">+{{ recibo.cantidad }} €</span>
+                            <div>
+                                <span 
+                                    :class="recibo.metodo_pago === 'bizum' ? 'bg-sky-100 text-sky-800' : 'bg-emerald-100 text-emerald-800'"
+                                    class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full uppercase"
+                                >
+                                    {{ recibo.metodo_pago === 'bizum' ? '📱 Bizum' : '💵 Metálico' }}
+                                </span>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="text-xs text-gray-600 space-y-1 bg-gray-50 p-2.5 rounded-lg">
@@ -255,7 +282,6 @@ const enviarPorWhatsapp = (recibo) => {
                         <p><strong>Teléfono:</strong> {{ recibo.telefono || 'Sin registrar' }}</p>
                     </div>
 
-                    <!-- Botones de Acción en Móvil -->
                     <div class="grid grid-cols-2 gap-2 pt-1">
                         <button
                             @click="enviarPorWhatsapp(recibo)"
@@ -301,7 +327,7 @@ const enviarPorWhatsapp = (recibo) => {
                 </div>
             </div>
 
-            <!-- VISTA DE ESCRITORIO: TABLA (SE MUESTRA DE MD EN ADELANTE) -->
+            <!-- TABLA ESCRITORIO -->
             <div class="hidden md:block bg-white rounded-xl shadow-md overflow-hidden">
                 <table class="w-full text-left border-collapse">
                     <thead class="bg-gray-100 text-gray-700 uppercase text-xs">
@@ -310,6 +336,7 @@ const enviarPorWhatsapp = (recibo) => {
                             <th class="p-4">Nombre / Casa</th>
                             <th class="p-4">Teléfono</th>
                             <th class="p-4">Concepto</th>
+                            <th class="p-4">Método</th>
                             <th class="p-4">Fecha</th>
                             <th class="p-4">Cantidad</th>
                             <th class="p-4 text-center">Acciones</th>
@@ -321,6 +348,14 @@ const enviarPorWhatsapp = (recibo) => {
                             <td class="p-4 font-medium text-gray-800">{{ recibo.nombre }}</td>
                             <td class="p-4 text-gray-600">{{ recibo.telefono || '-' }}</td>
                             <td class="p-4 text-gray-600">{{ recibo.concepto }}</td>
+                            <td class="p-4">
+                                <span 
+                                    :class="recibo.metodo_pago === 'bizum' ? 'bg-sky-100 text-sky-800' : 'bg-emerald-100 text-emerald-800'"
+                                    class="inline-block text-xs font-semibold px-2.5 py-1 rounded-full"
+                                >
+                                    {{ recibo.metodo_pago === 'bizum' ? '📱 Bizum' : '💵 Metálico' }}
+                                </span>
+                            </td>
                             <td class="p-4 text-gray-600">{{ recibo.fecha }}</td>
                             <td class="p-4 font-bold text-green-600">+{{ recibo.cantidad }} €</td>
                             <td class="p-4 text-center">
@@ -368,7 +403,7 @@ const enviarPorWhatsapp = (recibo) => {
                             </td>
                         </tr>
                         <tr v-if="recibos.length === 0">
-                            <td colspan="7" class="p-6 text-center text-gray-500">
+                            <td colspan="8" class="p-6 text-center text-gray-500">
                                 No hay recibos registrados para el año {{ anioSeleccionado }}.
                             </td>
                         </tr>
@@ -382,17 +417,20 @@ const enviarPorWhatsapp = (recibo) => {
                 class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto"
             >
                 <div class="bg-white rounded-xl shadow-xl w-full max-w-lg p-5 sm:p-6 my-8 relative">
-                    <h3 class="text-lg font-bold text-gray-800 mb-4">Editar Recibo</h3>
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">Editar Recibo #{{ editForm.numero }}</h3>
 
                     <form @submit.prevent="guardarEdicion" class="space-y-4">
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-xs font-medium text-gray-700 mb-1">Nº Recibo</label>
-                                <input v-model="editForm.numero" type="text" required class="w-full border-gray-300 rounded-lg text-sm" />
-                            </div>
-                            <div>
                                 <label class="block text-xs font-medium text-gray-700 mb-1">Cantidad (€)</label>
                                 <input v-model="editForm.cantidad" type="number" step="0.01" required class="w-full border-gray-300 rounded-lg text-sm" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700 mb-1">Método de Pago</label>
+                                <select v-model="editForm.metodo_pago" class="w-full border-gray-300 rounded-lg text-sm">
+                                    <option value="metalico">💵 Metálico</option>
+                                    <option value="bizum">📱 Bizum</option>
+                                </select>
                             </div>
                         </div>
 
