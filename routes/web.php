@@ -14,6 +14,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/recibos', [ReciboController::class, 'store'])->name('recibos.store');
     Route::get('/recibos/export/{anio}', [ReciboController::class, 'exportarExcel'])->name('recibos.export');
     Route::delete('/recibos/{recibo}', [ReciboController::class, 'destroy'])->name('recibos.destroy');
+    Route::put('/recibos/{recibo}', [ReciboController::class, 'update'])->name('recibos.update');
     // Tickets
     Route::get('/tickets', [TicketController::class, 'index'])->name('tickets.index');
     Route::post('/tickets', [TicketController::class, 'store'])->name('tickets.store');

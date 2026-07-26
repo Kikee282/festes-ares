@@ -149,14 +149,22 @@ const showingNavigationDropdown = ref(false);
                     }"
                     class="sm:hidden"
                 >
-                    <div class="space-y-1 pb-3 pt-2">
-                        <ResponsiveNavLink
-                            :href="route('dashboard')"
-                            :active="route().current('dashboard')"
-                        >
-                            Dashboard
-                        </ResponsiveNavLink>
-                    </div>
+                    <div class="pt-2 pb-3 space-y-1">
+    <!-- Pestaña Dashboard Móvil -->
+    <ResponsiveNavLink :href="route('dashboard')" :active="route().current('dashboard')">
+        Dashboard
+    </ResponsiveNavLink>
+
+    <!-- 👈 Pestaña Recibos Móvil -->
+    <ResponsiveNavLink :href="route('recibos.index')" :active="route().current('recibos.*')">
+        Recibos
+    </ResponsiveNavLink>
+
+    <!-- 👈 Pestaña Tickets Móvil -->
+    <ResponsiveNavLink :href="route('tickets.index')" :active="route().current('tickets.*')">
+        Tickets
+    </ResponsiveNavLink>
+</div>
 
                     <!-- Responsive Settings Options -->
                     <div class="border-t border-gray-200 pb-1 pt-4">

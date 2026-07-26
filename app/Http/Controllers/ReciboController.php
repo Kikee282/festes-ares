@@ -66,6 +66,25 @@ class ReciboController extends Controller
         return redirect()->back();
     }
 
+    public function update(Request $request, Recibo $recibo)
+{
+    $validated = $request->validate([
+        'numero'   => 'required|string|max:50',
+        'nombre'   => 'required|string|max:255',
+        'telefono' => 'nullable|string|max:20',
+        'cantidad' => 'required|numeric',
+        'concepto' => 'required|string|max:255',
+        'fecha'    => 'required|date',
+    ]);
+
+    // Recalculamos el año por si cambiaron la fecha
+    $validated['anio'] = date('Y', strtotime($validated['fecha']));
+
+    $recibo->update($validated);
+
+    return redirect()->back();
+}
+
     public function pdf($id)
 {
     $recibo = Recibo::findOrFail($id);
