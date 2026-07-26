@@ -6,8 +6,7 @@ use App\Models\Ticket;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
-use App\Exports\TicketsExport;
-use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TicketController extends Controller
 {
@@ -19,14 +18,12 @@ class TicketController extends Controller
             ->orderBy('fecha', 'desc')
             ->get();
 
-        // Convertimos a array nativo de enteros
         $aniosDisponibles = Ticket::whereNotNull('anio')
             ->distinct()
             ->pluck('anio')
             ->map(fn($a) => (int)$a)
             ->toArray();
 
-        // Si la tabla de tickets está vacía en producción, forzamos el año actual
         if (empty($aniosDisponibles)) {
             $aniosDisponibles = [(int) date('Y')];
         }
@@ -74,9 +71,44 @@ class TicketController extends Controller
 
     public function exportarExcel($anio)
     {
-        return Excel::download(
-            new TicketsExport($anio),
-            "tickets_gastos_fiestas_{$anio}.xlsx"
-        );
+        $fileName = "tickets_gastos_fiestas_{$anio}.csv";
+
+        $tickets = Ticket::where('anio', $anio)
+            ->orderBy('fecha', 'asc')
+            ->get();
+
+        $headers = [
+            "Content-type"        => "text/csv; charset=UTF-8",
+            "Content-Disposition" => "attachment; filename=$fileName",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        return response()->stream(function () use ($tickets) {
+            $file = fopen('php://output', 'w');
+            
+            // BOM para que Excel abra los acentos correctamente en UTF-8
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+
+            // Cabeceras de las columnas (separadas por punto y coma para Excel en español)
+            fputcsv($file, ['Fecha', 'Establecimiento / Proveedor', 'Concepto', 'Importe (€)'], ';');
+
+            $total = 0;
+            foreach ($tickets as $ticket) {
+                $total += $ticket->importe;
+                fputcsv($file, [
+                    $ticket->fecha,
+                    $ticket->nombre,
+                    $ticket->concepto,
+                    number_format($ticket->importe, 2, ',', '')
+                ], ';');
+            }
+
+            // Fila de Total
+            fputcsv($file, ['', '', 'TOTAL GASTOS:', number_format($total, 2, ',', '')], ';');
+
+            fclose($file);
+        }, 200, $headers);
     }
 }
