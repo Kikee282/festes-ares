@@ -62,7 +62,6 @@ class TicketController extends Controller
 
     public function store(Request $request)
 {
-    dd($request->file('imagen'), $request->all());
     $request->validate([
         'nombre'   => 'required|string|max:255',
         'importe'  => 'required|numeric|min:0',
@@ -73,9 +72,17 @@ class TicketController extends Controller
 
     $rutaImagen = null;
 
-    // Verificar explícitamente que se subió un archivo y es válido
     if ($request->hasFile('imagen') && $request->file('imagen')->isValid()) {
-        $rutaImagen = $request->file('imagen')->store('tickets', 's3');
+        try {
+            // Guarda el archivo en Supabase Storage y devuelve la ruta relativa (ej: "tickets/abc123xyz.jpg")
+            $path = $request->file('imagen')->store('tickets', 's3');
+            
+            // Aseguramos que asignamos la ruta como String estricto
+            $rutaImagen = (string) $path;
+        } catch (\Exception $e) {
+            // Si hay un fallo de conexión con Supabase, nos mostrará el error real en pantalla
+            return back()->withErrors(['imagen' => 'Error al subir a Supabase: ' . $e->getMessage()]);
+        }
     }
 
     Ticket::create([
@@ -84,43 +91,49 @@ class TicketController extends Controller
         'concepto'    => $request->concepto,
         'fecha'       => $request->fecha,
         'anio'        => (int) date('Y', strtotime($request->fecha)),
-        'imagen_path' => $rutaImagen, // Si no hay foto, se guardará NULL explícito
+        'imagen_path' => $rutaImagen,
     ]);
 
     return redirect()->back();
 }
 
     public function update(Request $request, Ticket $ticket)
-    {
-        $request->validate([
-            'nombre'   => 'required|string|max:255',
-            'importe'  => 'required|numeric|min:0',
-            'concepto' => 'required|string|max:255',
-            'fecha'    => 'required|date',
-            'imagen'   => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
-        ]);
+{
+    $request->validate([
+        'nombre'   => 'required|string|max:255',
+        'importe'  => 'required|numeric|min:0',
+        'concepto' => 'required|string|max:255',
+        'fecha'    => 'required|date',
+        'imagen'   => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
+    ]);
 
-        $rutaImagen = $ticket->imagen_path;
+    $rutaImagen = $ticket->imagen_path;
 
-        if ($request->hasFile('imagen')) {
-            // Borramos la foto previa si existía
+    if ($request->hasFile('imagen') && $request->file('imagen')->isValid()) {
+        try {
+            // Si ya tenía una foto previa (y no es una URL http externa), la borramos de Supabase
             if ($ticket->imagen_path && !str_starts_with($ticket->imagen_path, 'http')) {
                 Storage::disk('s3')->delete($ticket->imagen_path);
             }
-            $rutaImagen = $request->file('imagen')->store('tickets', 's3');
+            
+            $path = $request->file('imagen')->store('tickets', 's3');
+            $rutaImagen = (string) $path;
+        } catch (\Exception $e) {
+            return back()->withErrors(['imagen' => 'Error al actualizar foto en Supabase: ' . $e->getMessage()]);
         }
-
-        $ticket->update([
-            'nombre'      => $request->nombre,
-            'importe'     => $request->importe,
-            'concepto'    => $request->concepto,
-            'fecha'       => $request->fecha,
-            'anio'        => (int) date('Y', strtotime($request->fecha)),
-            'imagen_path' => $rutaImagen,
-        ]);
-
-        return redirect()->back();
     }
+
+    $ticket->update([
+        'nombre'      => $request->nombre,
+        'importe'     => $request->importe,
+        'concepto'    => $request->concepto,
+        'fecha'       => $request->fecha,
+        'anio'        => (int) date('Y', strtotime($request->fecha)),
+        'imagen_path' => $rutaImagen,
+    ]);
+
+    return redirect()->back();
+}
 
     public function destroy(Ticket $ticket)
     {
