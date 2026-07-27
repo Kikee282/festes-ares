@@ -51,26 +51,51 @@ class TicketController extends Controller
         $validated['anio'] = (int) date('Y', strtotime($validated['fecha']));
 
         if ($request->hasFile('imagen')) {
-            $path = $request->file('imagen')->store('tickets', 'public');
-            $validated['imagen_path'] = '/storage/' . $path;
-        }
+    // Guarda directamente en el disco s3 (Supabase)
+    // $path valdrá algo como "tickets/nombre_foto.jpg"
+    $validated['imagen_path'] = $request->file('imagen')->store('tickets', 's3');
+}
 
         Ticket::create($validated);
 
         return redirect()->back();
     }
 
-    public function destroy(Ticket $ticket)
+    public function update(Request $request, Ticket $ticket)
     {
-        if ($ticket->imagen_path) {
-            $relativePath = str_replace('/storage/', '', $ticket->imagen_path);
-            Storage::disk('public')->delete($relativePath);
+        $validated = $request->validate([
+            'nombre'   => 'required|string|max:255',
+            'importe'  => 'required|numeric|min:0',
+            'concepto' => 'required|string|max:255',
+            'fecha'    => 'required|date',
+            'imagen'   => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
+        ]);
+
+        $validated['anio'] = (int) date('Y', strtotime($validated['fecha']));
+
+        // Si sube una nueva imagen, eliminamos la anterior de Supabase y subimos la nueva
+        if ($request->hasFile('imagen')) {
+            if ($ticket->imagen_path) {
+                Storage::disk('s3')->delete($ticket->imagen_path);
+            }
+            $validated['imagen_path'] = $request->file('imagen')->store('tickets', 's3');
         }
 
-        $ticket->delete();
+        $ticket->update($validated);
 
         return redirect()->back();
     }
+
+    public function destroy(Ticket $ticket)
+{
+    if ($ticket->imagen_path) {
+        Storage::disk('s3')->delete($ticket->imagen_path);
+    }
+
+    $ticket->delete();
+
+    return redirect()->back();
+}
 
     public function exportarExcel($anio)
     {

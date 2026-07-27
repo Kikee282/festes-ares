@@ -20,7 +20,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/tickets', [TicketController::class, 'store'])->name('tickets.store');
     Route::delete('/tickets/{ticket}', [TicketController::class, 'destroy'])->name('tickets.destroy');
     Route::get('/tickets/exportar/{anio}', [TicketController::class, 'exportarExcel'])->name('tickets.exportar');
-
+    Route::post('/tickets/{ticket}', [TicketController::class, 'update'])->name('tickets.update');
     //Loteria
     Route::get('/loteria', [LoteriaController::class, 'index'])->name('loteria.index');
     Route::post('/loteria', [LoteriaController::class, 'store'])->name('loteria.store');

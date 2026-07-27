@@ -11,6 +11,11 @@ const props = defineProps({
     aniosDisponibles: Array,
 });
 
+// Control de modo Edición / Creación
+const editando = ref(false);
+const ticketIdEdicion = ref(null);
+const fileInput = ref(null);
+
 const form = useForm({
     nombre: "",
     importe: "",
@@ -23,15 +28,61 @@ const handleFileChange = (e) => {
     form.imagen = e.target.files[0];
 };
 
+// Cargar datos en el formulario para editar
+const editarTicket = (ticket) => {
+    editando.value = true;
+    ticketIdEdicion.value = ticket.id;
+    
+    form.nombre = ticket.nombre;
+    form.importe = ticket.importe;
+    form.concepto = ticket.concepto;
+    form.fecha = ticket.fecha;
+    form.imagen = null;
+
+    if (fileInput.value) {
+        fileInput.value.value = "";
+    }
+    
+    // Scroll suave hacia el formulario superior
+    window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
+// Cancelar edición y volver a modo creación
+const cancelarEdicion = () => {
+    editando.value = false;
+    ticketIdEdicion.value = null;
+    form.reset();
+    form.fecha = new Date().toISOString().substr(0, 10);
+    if (fileInput.value) {
+        fileInput.value.value = "";
+    }
+};
+
 const guardarTicket = () => {
-    form.post(route("tickets.store"), {
-        forceFormData: true,
-        onSuccess: () => {
-            form.reset("nombre", "importe", "concepto", "imagen");
-            const fileInput = document.getElementById("input-imagen");
-            if (fileInput) fileInput.value = "";
-        },
-    });
+    if (editando.value) {
+        // En Laravel, las peticiones multipart (con archivos) para editar 
+        // deben enviarse como POST simulando un PUT mediante _method: 'put'
+        router.post(
+            route("tickets.update", ticketIdEdicion.value),
+            {
+                _method: "put",
+                nombre: form.nombre,
+                importe: form.importe,
+                concepto: form.concepto,
+                fecha: form.fecha,
+                imagen: form.imagen,
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => cancelarEdicion(),
+            }
+        );
+    } else {
+        form.post(route("tickets.store"), {
+            preserveScroll: true,
+            onSuccess: () => cancelarEdicion(),
+        });
+    }
 };
 
 const cambiarAnio = (e) => {
@@ -40,7 +91,9 @@ const cambiarAnio = (e) => {
 
 const eliminarTicket = (id) => {
     if (confirm("¿Seguro que quieres eliminar este ticket?")) {
-        router.delete(route("tickets.destroy", id));
+        router.delete(route("tickets.destroy", id), {
+            preserveScroll: true,
+        });
     }
 };
 </script>
@@ -85,11 +138,26 @@ const eliminarTicket = (id) => {
                 </div>
             </div>
 
-            <!-- Formulario de creación -->
+            <!-- Formulario de creación / edición -->
             <form
                 @submit.prevent="guardarTicket"
-                class="bg-white p-4 sm:p-6 rounded-xl shadow-md mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+                class="bg-white p-4 sm:p-6 rounded-xl shadow-md mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 border-l-4"
+                :class="editando ? 'border-amber-500' : 'border-blue-600'"
             >
+                <div class="lg:col-span-3 flex justify-between items-center mb-1">
+                    <h3 class="font-bold text-gray-800 text-base">
+                        {{ editando ? '✏️ Editar Ticket' : '➕ Añadir Nuevo Ticket' }}
+                    </h3>
+                    <button
+                        v-if="editando"
+                        type="button"
+                        @click="cancelarEdicion"
+                        class="text-xs text-gray-500 hover:text-gray-700 underline font-semibold cursor-pointer"
+                    >
+                        Cancelar edición
+                    </button>
+                </div>
+
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1"
                         >Nombre / Establecimiento</label
@@ -144,10 +212,10 @@ const eliminarTicket = (id) => {
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1"
-                        >Imagen del Ticket (Opcional)</label
+                        >Imagen del Ticket {{ editando ? '(Opcional para reemplazar)' : '(Opcional)' }}</label
                     >
                     <input
-                        id="input-imagen"
+                        ref="fileInput"
                         type="file"
                         @change="handleFileChange"
                         accept="image/*"
@@ -155,13 +223,22 @@ const eliminarTicket = (id) => {
                     />
                 </div>
 
-                <div class="md:col-span-2 lg:col-span-1 flex items-end">
+                <div class="md:col-span-2 lg:col-span-1 flex items-end gap-2">
                     <button
                         type="submit"
                         :disabled="form.processing"
-                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-lg shadow transition-colors text-sm cursor-pointer"
+                        class="w-full text-white font-bold py-2.5 px-4 rounded-lg shadow transition-colors text-sm cursor-pointer disabled:opacity-50"
+                        :class="editando ? 'bg-amber-600 hover:bg-amber-700' : 'bg-blue-600 hover:bg-blue-700'"
                     >
-                        Guardar Ticket
+                        {{ editando ? 'Actualizar Ticket' : 'Guardar Ticket' }}
+                    </button>
+                    <button
+                        v-if="editando"
+                        type="button"
+                        @click="cancelarEdicion"
+                        class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2.5 px-3 rounded-lg text-sm transition-colors cursor-pointer"
+                    >
+                        X
                     </button>
                 </div>
             </form>
@@ -194,12 +271,20 @@ const eliminarTicket = (id) => {
                         </a>
                         <span v-else class="text-xs text-gray-400">Sin foto</span>
 
-                        <button
-                            @click="eliminarTicket(ticket.id)"
-                            class="bg-red-100 text-red-700 font-semibold py-1.5 px-3 rounded-lg text-xs"
-                        >
-                            🗑️ Eliminar
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button
+                                @click="editarTicket(ticket)"
+                                class="bg-amber-100 text-amber-800 font-semibold py-1.5 px-3 rounded-lg text-xs"
+                            >
+                                ✏️ Editar
+                            </button>
+                            <button
+                                @click="eliminarTicket(ticket.id)"
+                                class="bg-red-100 text-red-700 font-semibold py-1.5 px-3 rounded-lg text-xs"
+                            >
+                                🗑️ Eliminar
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -248,7 +333,13 @@ const eliminarTicket = (id) => {
                                     >Sin foto</span
                                 >
                             </td>
-                            <td class="p-4 text-center">
+                            <td class="p-4 text-center space-x-3">
+                                <button
+                                    @click="editarTicket(ticket)"
+                                    class="text-amber-600 hover:text-amber-800 font-semibold cursor-pointer"
+                                >
+                                    Editar
+                                </button>
                                 <button
                                     @click="eliminarTicket(ticket.id)"
                                     class="text-red-600 hover:text-red-800 font-semibold cursor-pointer"
