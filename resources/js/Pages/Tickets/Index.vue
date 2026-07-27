@@ -14,24 +14,13 @@ const props = defineProps({
 // Control de modo Edición / Creación
 const editando = ref(false);
 const ticketIdEdicion = ref(null);
-const fileInput = ref(null);
 
 const form = useForm({
     nombre: "",
     importe: "",
     concepto: "",
     fecha: new Date().toISOString().substr(0, 10),
-    imagen: null,
 });
-
-const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-        form.imagen = file; // Asigna el objeto File de JavaScript
-    } else {
-        form.imagen = null;
-    }
-};
 
 // Cargar datos en el formulario para editar
 const editarTicket = (ticket) => {
@@ -42,13 +31,7 @@ const editarTicket = (ticket) => {
     form.importe = ticket.importe;
     form.concepto = ticket.concepto;
     form.fecha = ticket.fecha;
-    form.imagen = null;
 
-    if (fileInput.value) {
-        fileInput.value.value = "";
-    }
-    
-    // Scroll suave hacia el formulario superior
     window.scrollTo({ top: 0, behavior: "smooth" });
 };
 
@@ -58,35 +41,16 @@ const cancelarEdicion = () => {
     ticketIdEdicion.value = null;
     form.reset();
     form.fecha = new Date().toISOString().substr(0, 10);
-    if (fileInput.value) {
-        fileInput.value.value = "";
-    }
 };
 
 const guardarTicket = () => {
-    // 1. Creamos un FormData nativo de JavaScript
-    const data = new FormData();
-    data.append("nombre", form.nombre);
-    data.append("importe", form.importe);
-    data.append("concepto", form.concepto);
-    data.append("fecha", form.fecha);
-
-    // Adjuntamos la imagen solo si se ha seleccionado un archivo
-    if (form.imagen) {
-        data.append("imagen", form.imagen);
-    }
-
     if (editando.value) {
-        // Para actualizar en Laravel enviamos un POST simulando un PUT
-        data.append("_method", "put");
-
-        router.post(route("tickets.update", ticketIdEdicion.value), data, {
+        form.put(route("tickets.update", ticketIdEdicion.value), {
             preserveScroll: true,
             onSuccess: () => cancelarEdicion(),
         });
     } else {
-        // Para crear un nuevo ticket
-        router.post(route("tickets.store"), data, {
+        form.post(route("tickets.store"), {
             preserveScroll: true,
             onSuccess: () => cancelarEdicion(),
         });
@@ -218,20 +182,7 @@ const eliminarTicket = (id) => {
                     />
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1"
-                        >Imagen del Ticket {{ editando ? '(Opcional para reemplazar)' : '(Opcional)' }}</label
-                    >
-                    <input
-                        ref="fileInput"
-                        type="file"
-                        @change="handleFileChange"
-                        accept="image/jpeg,image/png,image/jpg,image/webp"
-                        class="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                    />
-                </div>
-
-                <div class="md:col-span-2 lg:col-span-1 flex items-end gap-2">
+                <div class="md:col-span-2 lg:col-span-2 flex items-end gap-2">
                     <button
                         type="submit"
                         :disabled="form.processing"
@@ -268,31 +219,19 @@ const eliminarTicket = (id) => {
 
                     <p class="text-xs text-gray-600 bg-gray-50 p-2 rounded-lg"><strong>Concepto:</strong> {{ ticket.concepto }}</p>
 
-                    <div class="flex justify-between items-center pt-2">
-                        <a
-                            v-if="ticket.imagen_path"
-                            :href="ticket.imagen_path"
-                            target="_blank"
-                            class="inline-flex items-center gap-1 text-xs text-blue-600 font-semibold bg-blue-50 px-2.5 py-1.5 rounded-lg"
+                    <div class="flex justify-end items-center gap-2 pt-2">
+                        <button
+                            @click="editarTicket(ticket)"
+                            class="bg-amber-100 text-amber-800 font-semibold py-1.5 px-3 rounded-lg text-xs cursor-pointer"
                         >
-                            📷 Ver Foto
-                        </a>
-                        <span v-else class="text-xs text-gray-400">Sin foto</span>
-
-                        <div class="flex items-center gap-2">
-                            <button
-                                @click="editarTicket(ticket)"
-                                class="bg-amber-100 text-amber-800 font-semibold py-1.5 px-3 rounded-lg text-xs cursor-pointer"
-                            >
-                                ✏️ Editar
-                            </button>
-                            <button
-                                @click="eliminarTicket(ticket.id)"
-                                class="bg-red-100 text-red-700 font-semibold py-1.5 px-3 rounded-lg text-xs cursor-pointer"
-                            >
-                                🗑️ Eliminar
-                            </button>
-                        </div>
+                            ✏️ Editar
+                        </button>
+                        <button
+                            @click="eliminarTicket(ticket.id)"
+                            class="bg-red-100 text-red-700 font-semibold py-1.5 px-3 rounded-lg text-xs cursor-pointer"
+                        >
+                            🗑️ Eliminar
+                        </button>
                     </div>
                 </div>
 
@@ -310,7 +249,6 @@ const eliminarTicket = (id) => {
                             <th class="p-4">Establecimiento</th>
                             <th class="p-4">Concepto</th>
                             <th class="p-4">Importe</th>
-                            <th class="p-4 text-center">Imagen</th>
                             <th class="p-4 text-center">Acciones</th>
                         </tr>
                     </thead>
@@ -327,19 +265,6 @@ const eliminarTicket = (id) => {
                             </td>
                             <td class="p-4 font-bold text-red-600">
                                 -{{ ticket.importe }} €
-                            </td>
-                            <td class="p-4 text-center">
-                                <a
-                                    v-if="ticket.imagen_path"
-                                    :href="ticket.imagen_path"
-                                    target="_blank"
-                                    class="inline-flex items-center text-blue-600 hover:underline"
-                                >
-                                    📷 Ver
-                                </a>
-                                <span v-else class="text-gray-400"
-                                    >Sin foto</span
-                                >
                             </td>
                             <td class="p-4 text-center space-x-3">
                                 <button
@@ -358,7 +283,7 @@ const eliminarTicket = (id) => {
                         </tr>
                         <tr v-if="tickets.length === 0">
                             <td
-                                colspan="6"
+                                colspan="5"
                                 class="p-6 text-center text-gray-500"
                             >
                                 No hay tickets registrados en este año.

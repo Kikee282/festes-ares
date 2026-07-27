@@ -11,7 +11,6 @@ class Ticket extends Model
         'importe',
         'concepto',
         'fecha',
-        'imagen_path',
         'anio',
     ];
 }
