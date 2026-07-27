@@ -7,7 +7,7 @@ use Inertia\Inertia;
 use App\Http\Controllers\ReciboController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\LoteriaController;
-
+use App\Http\Controllers\DashboardController;
 Route::middleware(['auth', 'verified'])->group(function () {
     // Recibos
     Route::get('/recibos', [ReciboController::class, 'index'])->name('recibos.index');
@@ -26,6 +26,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/loteria', [LoteriaController::class, 'store'])->name('loteria.store');
     Route::put('/loteria/{loteria}', [LoteriaController::class, 'update'])->name('loteria.update');
     Route::delete('/loteria/{loteria}', [LoteriaController::class, 'destroy'])->name('loteria.destroy');
+
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::post('/saldo-inicial', [DashboardController::class, 'guardarSaldoInicial'])->name('saldo.guardar');
 });
 
 Route::get('/recibos/{id}/pdf', [ReciboController::class, 'pdf'])
@@ -40,10 +43,6 @@ Route::get('/', function () {
         'phpVersion' => PHP_VERSION,
     ]);
 });
-
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
