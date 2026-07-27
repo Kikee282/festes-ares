@@ -25,7 +25,11 @@ const form = useForm({
 });
 
 const handleFileChange = (e) => {
-    form.imagen = e.target.files[0];
+    if (e.target.files && e.target.files[0]) {
+        form.imagen = e.target.files[0];
+    } else {
+        form.imagen = null;
+    }
 };
 
 // Cargar datos en el formulario para editar

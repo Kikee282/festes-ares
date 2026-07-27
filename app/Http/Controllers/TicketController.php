@@ -61,33 +61,33 @@ class TicketController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $request->validate([
-            'nombre'   => 'required|string|max:255',
-            'importe'  => 'required|numeric|min:0',
-            'concepto' => 'required|string|max:255',
-            'fecha'    => 'required|date',
-            'imagen'   => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
-        ]);
+{
+    $request->validate([
+        'nombre'   => 'required|string|max:255',
+        'importe'  => 'required|numeric|min:0',
+        'concepto' => 'required|string|max:255',
+        'fecha'    => 'required|date',
+        'imagen'   => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
+    ]);
 
-        $rutaImagen = null;
+    $rutaImagen = null;
 
-        if ($request->hasFile('imagen')) {
-            // Guarda en Supabase y devuelve la ruta relativa (ej: tickets/abc123xyz.jpg)
-            $rutaImagen = $request->file('imagen')->store('tickets', 's3');
-        }
-
-        Ticket::create([
-            'nombre'      => $request->nombre,
-            'importe'     => $request->importe,
-            'concepto'    => $request->concepto,
-            'fecha'       => $request->fecha,
-            'anio'        => (int) date('Y', strtotime($request->fecha)),
-            'imagen_path' => $rutaImagen,
-        ]);
-
-        return redirect()->back();
+    // Verificar explícitamente que se subió un archivo y es válido
+    if ($request->hasFile('imagen') && $request->file('imagen')->isValid()) {
+        $rutaImagen = $request->file('imagen')->store('tickets', 's3');
     }
+
+    Ticket::create([
+        'nombre'      => $request->nombre,
+        'importe'     => $request->importe,
+        'concepto'    => $request->concepto,
+        'fecha'       => $request->fecha,
+        'anio'        => (int) date('Y', strtotime($request->fecha)),
+        'imagen_path' => $rutaImagen, // Si no hay foto, se guardará NULL explícito
+    ]);
+
+    return redirect()->back();
+}
 
     public function update(Request $request, Ticket $ticket)
     {
