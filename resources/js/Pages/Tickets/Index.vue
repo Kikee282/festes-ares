@@ -65,8 +65,7 @@ const cancelarEdicion = () => {
 
 const guardarTicket = () => {
     if (editando.value) {
-        // Para editar registros con archivos en Laravel/Inertia, 
-        // usaremos router.post con _method: 'put' y forceFormData: true
+        // Al usar router.post para simular un PUT con multipart/form-data
         router.post(
             route("tickets.update", ticketIdEdicion.value),
             {
@@ -78,15 +77,15 @@ const guardarTicket = () => {
                 imagen: form.imagen,
             },
             {
-                forceFormData: true, // 👈 Obliga a empaquetar en multipart/form-data
+                forceFormData: true,
                 preserveScroll: true,
                 onSuccess: () => cancelarEdicion(),
             }
         );
     } else {
-        // Para crear un ticket nuevo
+        // Al crear un ticket nuevo con el Helper de form
         form.post(route("tickets.store"), {
-            forceFormData: true, // 👈 Obliga a empaquetar en multipart/form-data
+            forceFormData: true,
             preserveScroll: true,
             onSuccess: () => cancelarEdicion(),
         });
@@ -223,11 +222,12 @@ const eliminarTicket = (id) => {
                         >Imagen del Ticket {{ editando ? '(Opcional para reemplazar)' : '(Opcional)' }}</label
                     >
                     <input
-    type="file"
-    @change="handleFileChange"
-    accept="image/jpeg,image/png,image/jpg,image/webp"
-    class="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-/>
+                        ref="fileInput"
+                        type="file"
+                        @change="handleFileChange"
+                        accept="image/jpeg,image/png,image/jpg,image/webp"
+                        class="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    />
                 </div>
 
                 <div class="md:col-span-2 lg:col-span-1 flex items-end gap-2">
@@ -281,13 +281,13 @@ const eliminarTicket = (id) => {
                         <div class="flex items-center gap-2">
                             <button
                                 @click="editarTicket(ticket)"
-                                class="bg-amber-100 text-amber-800 font-semibold py-1.5 px-3 rounded-lg text-xs"
+                                class="bg-amber-100 text-amber-800 font-semibold py-1.5 px-3 rounded-lg text-xs cursor-pointer"
                             >
                                 ✏️ Editar
                             </button>
                             <button
                                 @click="eliminarTicket(ticket.id)"
-                                class="bg-red-100 text-red-700 font-semibold py-1.5 px-3 rounded-lg text-xs"
+                                class="bg-red-100 text-red-700 font-semibold py-1.5 px-3 rounded-lg text-xs cursor-pointer"
                             >
                                 🗑️ Eliminar
                             </button>
