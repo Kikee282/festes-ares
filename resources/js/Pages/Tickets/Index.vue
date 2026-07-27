@@ -64,28 +64,29 @@ const cancelarEdicion = () => {
 };
 
 const guardarTicket = () => {
+    // 1. Creamos un FormData nativo de JavaScript
+    const data = new FormData();
+    data.append("nombre", form.nombre);
+    data.append("importe", form.importe);
+    data.append("concepto", form.concepto);
+    data.append("fecha", form.fecha);
+
+    // Adjuntamos la imagen solo si se ha seleccionado un archivo
+    if (form.imagen) {
+        data.append("imagen", form.imagen);
+    }
+
     if (editando.value) {
-        // Al usar router.post para simular un PUT con multipart/form-data
-        router.post(
-            route("tickets.update", ticketIdEdicion.value),
-            {
-                _method: "put",
-                nombre: form.nombre,
-                importe: form.importe,
-                concepto: form.concepto,
-                fecha: form.fecha,
-                imagen: form.imagen,
-            },
-            {
-                forceFormData: true,
-                preserveScroll: true,
-                onSuccess: () => cancelarEdicion(),
-            }
-        );
+        // Para actualizar en Laravel enviamos un POST simulando un PUT
+        data.append("_method", "put");
+
+        router.post(route("tickets.update", ticketIdEdicion.value), data, {
+            preserveScroll: true,
+            onSuccess: () => cancelarEdicion(),
+        });
     } else {
-        // Al crear un ticket nuevo con el Helper de form
-        form.post(route("tickets.store"), {
-            forceFormData: true,
+        // Para crear un nuevo ticket
+        router.post(route("tickets.store"), data, {
             preserveScroll: true,
             onSuccess: () => cancelarEdicion(),
         });
