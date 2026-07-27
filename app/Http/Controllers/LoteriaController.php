@@ -38,18 +38,27 @@ class LoteriaController extends Controller
         $validated = $request->validate([
             'fecha'          => 'required|date',
             'nombre'         => 'required|string|max:255',
-            'cantidad'       => 'required|integer|min:1',
+            'cantidad'       => 'nullable|integer|min:0',
             'concepto'       => 'required|string|max:255',
-            'tipo_operacion' => 'required|in:compra,venta',
+            'tipo_operacion' => 'required|in:compra,venta,liquidacion',
             'metodo_pago'    => 'required|in:metalico,bizum',
             'estado_pago'    => 'required|in:pagado,pendiente',
+            'importe_libre'  => 'nullable|numeric|min:0', // Usado cuando es liquidación
         ]);
 
         $validated['anio'] = (int) date('Y', strtotime($validated['fecha']));
 
-        // Cálculo de importe en servidor por seguridad
-        $precioUnitario = $validated['tipo_operacion'] === 'compra' ? 20 : 23;
-        $validated['importe'] = $validated['cantidad'] * $precioUnitario;
+        // Lógica de cálculo de importe
+        if ($validated['tipo_operacion'] === 'liquidacion') {
+            $validated['cantidad'] = 0;
+            $validated['importe'] = (float) ($request->input('importe_libre', 0));
+        } else {
+            $precioUnitario = $validated['tipo_operacion'] === 'compra' ? 20 : 23;
+            $validated['cantidad'] = max(1, (int) $validated['cantidad']);
+            $validated['importe'] = $validated['cantidad'] * $precioUnitario;
+        }
+
+        unset($validated['importe_libre']);
 
         Loteria::create($validated);
 
@@ -61,17 +70,26 @@ class LoteriaController extends Controller
         $validated = $request->validate([
             'fecha'          => 'required|date',
             'nombre'         => 'required|string|max:255',
-            'cantidad'       => 'required|integer|min:1',
+            'cantidad'       => 'nullable|integer|min:0',
             'concepto'       => 'required|string|max:255',
-            'tipo_operacion' => 'required|in:compra,venta',
+            'tipo_operacion' => 'required|in:compra,venta,liquidacion',
             'metodo_pago'    => 'required|in:metalico,bizum',
             'estado_pago'    => 'required|in:pagado,pendiente',
+            'importe_libre'  => 'nullable|numeric|min:0',
         ]);
 
         $validated['anio'] = (int) date('Y', strtotime($validated['fecha']));
 
-        $precioUnitario = $validated['tipo_operacion'] === 'compra' ? 20 : 23;
-        $validated['importe'] = $validated['cantidad'] * $precioUnitario;
+        if ($validated['tipo_operacion'] === 'liquidacion') {
+            $validated['cantidad'] = 0;
+            $validated['importe'] = (float) ($request->input('importe_libre', 0));
+        } else {
+            $precioUnitario = $validated['tipo_operacion'] === 'compra' ? 20 : 23;
+            $validated['cantidad'] = max(1, (int) $validated['cantidad']);
+            $validated['importe'] = $validated['cantidad'] * $precioUnitario;
+        }
+
+        unset($validated['importe_libre']);
 
         $loteria->update($validated);
 

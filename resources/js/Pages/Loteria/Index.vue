@@ -20,13 +20,17 @@ const form = useForm({
     nombre: "",
     cantidad: 1,
     concepto: conceptoPorDefecto,
-    tipo_operacion: "venta", // compra / venta
+    tipo_operacion: "venta", // compra / venta / liquidacion
     metodo_pago: "metalico", // metalico / bizum
     estado_pago: "pagado", // pagado / pendiente
+    importe_libre: 0, // Solo para liquidación
 });
 
-// Importe dinámico en tiempo real (Compra = 20€ / Venta = 23€)
+// Importe dinámico en tiempo real
 const importeCalculado = computed(() => {
+    if (form.tipo_operacion === "liquidacion") {
+        return parseFloat(form.importe_libre) || 0;
+    }
     const cant = parseInt(form.cantidad) || 0;
     const precio = form.tipo_operacion === "compra" ? 20 : 23;
     return cant * precio;
@@ -44,9 +48,13 @@ const editForm = useForm({
     tipo_operacion: "venta",
     metodo_pago: "metalico",
     estado_pago: "pagado",
+    importe_libre: 0,
 });
 
 const editImporteCalculado = computed(() => {
+    if (editForm.tipo_operacion === "liquidacion") {
+        return parseFloat(editForm.importe_libre) || 0;
+    }
     const cant = parseInt(editForm.cantidad) || 0;
     const precio = editForm.tipo_operacion === "compra" ? 20 : 23;
     return cant * precio;
@@ -59,7 +67,7 @@ const guardarLoteria = () => {
 
     form.post(route("loteria.store"), {
         onSuccess: () => {
-            form.reset("nombre", "cantidad");
+            form.reset("nombre", "cantidad", "importe_libre");
             form.concepto = conceptoPorDefecto;
             form.tipo_operacion = "venta";
             form.metodo_pago = "metalico";
@@ -77,6 +85,7 @@ const abrirEditar = (item) => {
     editForm.tipo_operacion = item.tipo_operacion;
     editForm.metodo_pago = item.metodo_pago;
     editForm.estado_pago = item.estado_pago;
+    editForm.importe_libre = item.tipo_operacion === "liquidacion" ? item.importe : 0;
     mostrandoModal.value = true;
 };
 
@@ -98,11 +107,25 @@ const cambiarAnio = (e) => {
     router.get(route("loteria.index"), { anio: e.target.value });
 };
 
-// CÁLCULO DE ESTADÍSTICAS Y GRÁFICO
+// CÁLCULO DE ESTADÍSTICAS
 const totalComprados = computed(() => {
     return props.loterias
         .filter((item) => item.tipo_operacion === "compra")
         .reduce((sum, item) => sum + parseInt(item.cantidad || 0), 0);
+});
+
+const totalInversionEuros = computed(() => {
+    return totalComprados.value * 20;
+});
+
+const totalLiquidadoEuros = computed(() => {
+    return props.loterias
+        .filter((item) => item.tipo_operacion === "liquidacion")
+        .reduce((sum, item) => sum + parseFloat(item.importe || 0), 0);
+});
+
+const deudaPendienteEuros = computed(() => {
+    return totalInversionEuros.value - totalLiquidadoEuros.value;
 });
 
 const totalVendidos = computed(() => {
@@ -131,7 +154,6 @@ const vendidosPendientes = computed(() => {
         .reduce((sum, item) => sum + parseInt(item.cantidad || 0), 0);
 });
 
-// Porcentajes para la barra del gráfico
 const porcentajePagados = computed(() => {
     if (totalVendidos.value === 0) return 0;
     return Math.round((vendidosPagados.value / totalVendidos.value) * 100);
@@ -147,10 +169,8 @@ const faltanPorVender = computed(() => {
     return restantes > 0 ? restantes : 0;
 });
 
-// Filtro de estado de pago: 'todos' | 'pagado' | 'pendiente'
 const filtroEstado = ref("todos");
 
-// Listado filtrado dinámicamente según la opción seleccionada
 const loteriasFiltradas = computed(() => {
     if (filtroEstado.value === "todos") {
         return props.loterias;
@@ -245,7 +265,7 @@ const loteriasFiltradas = computed(() => {
             </div>
 
             <!-- SECCIÓN DE ESTADÍSTICAS Y GRÁFICO -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                 <!-- Tarjeta 1: Décimos Comprados -->
                 <div
                     class="bg-white p-5 rounded-xl shadow-md border-l-4 border-amber-500 flex justify-between items-center"
@@ -260,11 +280,33 @@ const loteriasFiltradas = computed(() => {
                             {{ totalComprados }}
                         </p>
                         <p class="text-xs text-amber-600 font-semibold mt-1">
-                            Inversión: {{ totalComprados * 20 }} €
+                            Deuda Inicial: {{ totalInversionEuros }} €
                         </p>
                     </div>
                     <div class="bg-amber-50 p-3 rounded-full text-amber-600">
                         📥
+                    </div>
+                </div>
+
+                <!-- Tarjeta Liquidaciones a Administración -->
+                <div
+                    class="bg-white p-5 rounded-xl shadow-md border-l-4 border-blue-500 flex justify-between items-center"
+                >
+                    <div>
+                        <p
+                            class="text-xs font-semibold text-gray-500 uppercase tracking-wider"
+                        >
+                            Pagado a Admón.
+                        </p>
+                        <p class="text-3xl font-extrabold text-blue-600 mt-1">
+                            {{ totalLiquidadoEuros }} €
+                        </p>
+                        <p class="text-xs font-semibold mt-1" :class="deudaPendienteEuros > 0 ? 'text-rose-600' : 'text-emerald-600'">
+                            Pendiente: {{ deudaPendienteEuros }} €
+                        </p>
+                    </div>
+                    <div class="bg-blue-50 p-3 rounded-full text-blue-600">
+                        🏦
                     </div>
                 </div>
 
@@ -281,11 +323,11 @@ const loteriasFiltradas = computed(() => {
                         <p class="text-3xl font-extrabold text-gray-900 mt-1">
                             {{ totalVendidos }}
                             <span class="text-sm text-gray-400 font-normal"
-                                >/ {{ faltanPorVender }} por vender</span
+                                >/ {{ faltanPorVender }} libres</span
                             >
                         </p>
                         <p class="text-xs text-indigo-600 font-semibold mt-1">
-                            Total Ventas: {{ totalVendidos * 23 }} €
+                            Ventas: {{ totalVendidos * 23 }} €
                         </p>
                     </div>
                     <div class="bg-indigo-50 p-3 rounded-full text-indigo-600">
@@ -293,7 +335,7 @@ const loteriasFiltradas = computed(() => {
                     </div>
                 </div>
 
-                <!-- Tarjeta 3: Estado de Ventas (Pendientes vs Pagados) -->
+                <!-- Tarjeta 3: Estado de Ventas -->
                 <div
                     class="bg-white p-5 rounded-xl shadow-md border-l-4 border-rose-500 flex justify-between items-center"
                 >
@@ -301,12 +343,12 @@ const loteriasFiltradas = computed(() => {
                         <p
                             class="text-xs font-semibold text-gray-500 uppercase tracking-wider"
                         >
-                            Pendientes de Cobro
+                            Pendientes Cobro
                         </p>
                         <p class="text-3xl font-extrabold text-rose-600 mt-1">
                             {{ vendidosPendientes }}
                             <span class="text-sm text-gray-400 font-normal"
-                                >/ {{ totalVendidos }} décimos</span
+                                >décimos</span
                             >
                         </p>
                         <p class="text-xs text-rose-500 font-semibold mt-1">
@@ -335,11 +377,9 @@ const loteriasFiltradas = computed(() => {
                     </span>
                 </div>
 
-                <!-- Barra de Gráfico Proporcional -->
                 <div
                     class="w-full bg-gray-200 rounded-full h-4 flex overflow-hidden shadow-inner"
                 >
-                    <!-- Fragmento Pagado (Verde) -->
                     <div
                         :style="{ width: porcentajePagados + '%' }"
                         class="bg-emerald-500 h-full transition-all duration-500 flex items-center justify-center text-[10px] text-white font-bold"
@@ -350,7 +390,6 @@ const loteriasFiltradas = computed(() => {
                         >
                     </div>
 
-                    <!-- Fragmento Pendiente (Rojo/Rosa) -->
                     <div
                         :style="{ width: porcentajePendientes + '%' }"
                         class="bg-rose-500 h-full transition-all duration-500 flex items-center justify-center text-[10px] text-white font-bold"
@@ -362,7 +401,6 @@ const loteriasFiltradas = computed(() => {
                     </div>
                 </div>
 
-                <!-- Leyenda del Gráfico -->
                 <div class="flex justify-between items-center text-xs pt-1">
                     <div class="flex items-center gap-2">
                         <span
@@ -388,7 +426,8 @@ const loteriasFiltradas = computed(() => {
                     </div>
                 </div>
             </div>
-            <!-- FORMULARIO DE REGISTRO EN EL ORDEN SOLICITADO -->
+
+            <!-- FORMULARIO DE REGISTRO -->
             <form
                 @submit.prevent="guardarLoteria"
                 class="bg-white p-4 sm:p-6 rounded-xl shadow-md mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
@@ -409,21 +448,36 @@ const loteriasFiltradas = computed(() => {
                 <!-- 2. Nombre -->
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1"
-                        >2. Nombre (Comprador/Vendedor)</label
+                        >2. Nombre / Entidad</label
                     >
                     <input
                         v-model="form.nombre"
                         type="text"
                         required
-                        placeholder="Ej: Juan Pérez"
+                        placeholder="Ej: Administración Nº 2 / Juan Pérez"
                         class="w-full border-gray-300 rounded-lg text-sm"
                     />
                 </div>
 
-                <!-- 3. Cantidad de Décimos -->
+                <!-- 5. Tipo de Operación -->
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1"
-                        >3. Cantidad Décimos</label
+                        >3. Operación</label
+                    >
+                    <select
+                        v-model="form.tipo_operacion"
+                        class="w-full border-gray-300 rounded-lg text-sm font-semibold"
+                    >
+                        <option value="venta">📤 Venta (23€/décimo)</option>
+                        <option value="compra">📥 Compra (20€/décimo)</option>
+                        <option value="liquidacion">🔵 Liquidación (Pago Admón)</option>
+                    </select>
+                </div>
+
+                <!-- 3. Cantidad o Importe Libre según tipo -->
+                <div v-if="form.tipo_operacion !== 'liquidacion'">
+                    <label class="block text-xs font-medium text-gray-700 mb-1"
+                        >4. Cantidad Décimos</label
                     >
                     <input
                         v-model="form.cantidad"
@@ -435,10 +489,25 @@ const loteriasFiltradas = computed(() => {
                     />
                 </div>
 
+                <div v-else>
+                    <label class="block text-xs font-medium text-gray-700 mb-1"
+                        >4. Importe a Liquidar (€)</label
+                    >
+                    <input
+                        v-model="form.importe_libre"
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        required
+                        placeholder="0.00"
+                        class="w-full border-gray-300 rounded-lg text-sm font-bold text-blue-600"
+                    />
+                </div>
+
                 <!-- 4. Concepto -->
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1"
-                        >4. Concepto</label
+                        >5. Concepto</label
                     >
                     <input
                         v-model="form.concepto"
@@ -448,21 +517,7 @@ const loteriasFiltradas = computed(() => {
                     />
                 </div>
 
-                <!-- 5. Tipo de Operación (Compra / Venta) -->
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1"
-                        >5. Operación</label
-                    >
-                    <select
-                        v-model="form.tipo_operacion"
-                        class="w-full border-gray-300 rounded-lg text-sm"
-                    >
-                        <option value="venta">📤 Venta (23€/décimo)</option>
-                        <option value="compra">📥 Compra (20€/décimo)</option>
-                    </select>
-                </div>
-
-                <!-- 6. Método de Pago (Metálico / Bizum) -->
+                <!-- 6. Método de Pago -->
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1"
                         >6. Método de Pago</label
@@ -476,7 +531,7 @@ const loteriasFiltradas = computed(() => {
                     </select>
                 </div>
 
-                <!-- 7. Estado de Pago (Pagado / Pendiente) -->
+                <!-- 7. Estado de Pago -->
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1"
                         >7. Estado del Pago</label
@@ -485,7 +540,7 @@ const loteriasFiltradas = computed(() => {
                         v-model="form.estado_pago"
                         class="w-full border-gray-300 rounded-lg text-sm"
                     >
-                        <option value="pagado">✅ Pagado</option>
+                        <option value="pagado">✅ Pagado / Efectuado</option>
                         <option value="pendiente">⏳ Pendiente</option>
                     </select>
                 </div>
@@ -499,7 +554,7 @@ const loteriasFiltradas = computed(() => {
                         class="w-full bg-gray-100 border border-gray-300 rounded-lg py-2 px-3 text-sm font-bold text-gray-800"
                     >
                         {{ importeCalculado }} €
-                        <span class="text-[10px] font-normal text-gray-500">
+                        <span class="text-[10px] font-normal text-gray-500" v-if="form.tipo_operacion !== 'liquidacion'">
                             ({{ form.cantidad || 0 }} x
                             {{
                                 form.tipo_operacion === "compra" ? "20" : "23"
@@ -525,13 +580,12 @@ const loteriasFiltradas = computed(() => {
                     v-for="item in loteriasFiltradas"
                     :key="'card-' + item.id"
                     class="bg-white p-4 rounded-xl shadow-md border-l-4 space-y-3"
-                    :class="
-                        item.tipo_operacion === 'compra'
-                            ? 'border-amber-500'
-                            : 'border-indigo-500'
-                    "
+                    :class="{
+                        'border-amber-500': item.tipo_operacion === 'compra',
+                        'border-indigo-500': item.tipo_operacion === 'venta',
+                        'border-blue-500': item.tipo_operacion === 'liquidacion'
+                    }"
                 >
-                    >
                     <div class="flex justify-between items-start">
                         <div>
                             <span class="text-xs text-gray-400 font-semibold">{{
@@ -546,16 +600,17 @@ const loteriasFiltradas = computed(() => {
                         <div class="text-right">
                             <span
                                 class="font-extrabold text-base"
-                                :class="
-                                    item.tipo_operacion === 'compra'
-                                        ? 'text-amber-600'
-                                        : 'text-indigo-600'
-                                "
+                                :class="{
+                                    'text-amber-600': item.tipo_operacion === 'compra',
+                                    'text-indigo-600': item.tipo_operacion === 'venta',
+                                    'text-blue-600': item.tipo_operacion === 'liquidacion'
+                                }"
                             >
                                 {{ item.tipo_operacion === "compra" ? "-" : "+"
                                 }}{{ item.importe }} €
                             </span>
                             <div
+                                v-if="item.tipo_operacion !== 'liquidacion'"
                                 class="text-[10px] text-gray-500 font-semibold"
                             >
                                 {{ item.cantidad }} décimo(s)
@@ -569,11 +624,11 @@ const loteriasFiltradas = computed(() => {
                         <p><strong>Concepto:</strong> {{ item.concepto }}</p>
                         <div class="flex gap-2 pt-1">
                             <span
-                                :class="
-                                    item.tipo_operacion === 'compra'
-                                        ? 'bg-amber-100 text-amber-800'
-                                        : 'bg-indigo-100 text-indigo-800'
-                                "
+                                :class="{
+                                    'bg-amber-100 text-amber-800': item.tipo_operacion === 'compra',
+                                    'bg-indigo-100 text-indigo-800': item.tipo_operacion === 'venta',
+                                    'bg-blue-100 text-blue-800': item.tipo_operacion === 'liquidacion'
+                                }"
                                 class="px-2 py-0.5 rounded-full font-bold uppercase text-[10px]"
                             >
                                 {{ item.tipo_operacion }}
@@ -663,18 +718,18 @@ const loteriasFiltradas = computed(() => {
                                 {{ item.nombre }}
                             </td>
                             <td class="p-4 text-center font-bold">
-                                {{ item.cantidad }}
+                                {{ item.tipo_operacion === 'liquidacion' ? '-' : item.cantidad }}
                             </td>
                             <td class="p-4 text-gray-600">
                                 {{ item.concepto }}
                             </td>
                             <td class="p-4">
                                 <span
-                                    :class="
-                                        item.tipo_operacion === 'compra'
-                                            ? 'bg-amber-100 text-amber-800'
-                                            : 'bg-indigo-100 text-indigo-800'
-                                    "
+                                    :class="{
+                                        'bg-amber-100 text-amber-800': item.tipo_operacion === 'compra',
+                                        'bg-indigo-100 text-indigo-800': item.tipo_operacion === 'venta',
+                                        'bg-blue-100 text-blue-800': item.tipo_operacion === 'liquidacion'
+                                    }"
                                     class="px-2.5 py-1 rounded-full text-xs font-semibold uppercase"
                                 >
                                     {{ item.tipo_operacion }}
@@ -714,11 +769,11 @@ const loteriasFiltradas = computed(() => {
                             </td>
                             <td
                                 class="p-4 font-bold"
-                                :class="
-                                    item.tipo_operacion === 'compra'
-                                        ? 'text-amber-600'
-                                        : 'text-indigo-600'
-                                "
+                                :class="{
+                                    'text-amber-600': item.tipo_operacion === 'compra',
+                                    'text-indigo-600': item.tipo_operacion === 'venta',
+                                    'text-blue-600': item.tipo_operacion === 'liquidacion'
+                                }"
                             >
                                 {{ item.tipo_operacion === "compra" ? "-" : "+"
                                 }}{{ item.importe }} €
@@ -727,13 +782,13 @@ const loteriasFiltradas = computed(() => {
                                 <div class="flex justify-center gap-2">
                                     <button
                                         @click="abrirEditar(item)"
-                                        class="bg-amber-100 hover:bg-amber-200 text-amber-800 font-semibold py-1 px-2.5 rounded-lg text-xs"
+                                        class="bg-amber-100 hover:bg-amber-200 text-amber-800 font-semibold py-1 px-2.5 rounded-lg text-xs cursor-pointer"
                                     >
                                         ✏️ Editar
                                     </button>
                                     <button
                                         @click="eliminarLoteria(item.id)"
-                                        class="text-red-600 hover:text-red-800 font-semibold text-xs"
+                                        class="text-red-600 hover:text-red-800 font-semibold text-xs cursor-pointer"
                                     >
                                         Eliminar
                                     </button>
@@ -779,7 +834,7 @@ const loteriasFiltradas = computed(() => {
                                     class="w-full border-gray-300 rounded-lg text-sm"
                                 />
                             </div>
-                            <div>
+                            <div v-if="editForm.tipo_operacion !== 'liquidacion'">
                                 <label
                                     class="block text-xs font-medium text-gray-700 mb-1"
                                     >Cantidad Décimos</label
@@ -790,6 +845,19 @@ const loteriasFiltradas = computed(() => {
                                     min="1"
                                     required
                                     class="w-full border-gray-300 rounded-lg text-sm"
+                                />
+                            </div>
+                            <div v-else>
+                                <label
+                                    class="block text-xs font-medium text-gray-700 mb-1"
+                                    >Importe (€)</label
+                                >
+                                <input
+                                    v-model="editForm.importe_libre"
+                                    type="number"
+                                    step="0.01"
+                                    required
+                                    class="w-full border-gray-300 rounded-lg text-sm font-bold text-blue-600"
                                 />
                             </div>
                         </div>
@@ -828,10 +896,11 @@ const loteriasFiltradas = computed(() => {
                                 >
                                 <select
                                     v-model="editForm.tipo_operacion"
-                                    class="w-full border-gray-300 rounded-lg text-sm"
+                                    class="w-full border-gray-300 rounded-lg text-sm font-semibold"
                                 >
                                     <option value="venta">Venta (23€)</option>
                                     <option value="compra">Compra (20€)</option>
+                                    <option value="liquidacion">Liquidación</option>
                                 </select>
                             </div>
                             <div>
@@ -875,14 +944,14 @@ const loteriasFiltradas = computed(() => {
                             <button
                                 type="button"
                                 @click="mostrandoModal = false"
-                                class="bg-gray-200 text-gray-800 py-2 px-4 rounded-lg text-sm"
+                                class="bg-gray-200 text-gray-800 py-2 px-4 rounded-lg text-sm cursor-pointer"
                             >
                                 Cancelar
                             </button>
                             <button
                                 type="submit"
                                 :disabled="editForm.processing"
-                                class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg text-sm"
+                                class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg text-sm cursor-pointer"
                             >
                                 Guardar Cambios
                             </button>
