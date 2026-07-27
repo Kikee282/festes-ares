@@ -25,8 +25,9 @@ const form = useForm({
 });
 
 const handleFileChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-        form.imagen = e.target.files[0];
+    const file = e.target.files[0];
+    if (file) {
+        form.imagen = file; // Asigna el objeto File de JavaScript
     } else {
         form.imagen = null;
     }
@@ -64,8 +65,8 @@ const cancelarEdicion = () => {
 
 const guardarTicket = () => {
     if (editando.value) {
-        // En Laravel, las peticiones multipart (con archivos) para editar 
-        // deben enviarse como POST simulando un PUT mediante _method: 'put'
+        // Para editar registros con archivos en Laravel/Inertia, 
+        // usaremos router.post con _method: 'put' y forceFormData: true
         router.post(
             route("tickets.update", ticketIdEdicion.value),
             {
@@ -77,12 +78,15 @@ const guardarTicket = () => {
                 imagen: form.imagen,
             },
             {
+                forceFormData: true, // 👈 Obliga a empaquetar en multipart/form-data
                 preserveScroll: true,
                 onSuccess: () => cancelarEdicion(),
             }
         );
     } else {
+        // Para crear un ticket nuevo
         form.post(route("tickets.store"), {
+            forceFormData: true, // 👈 Obliga a empaquetar en multipart/form-data
             preserveScroll: true,
             onSuccess: () => cancelarEdicion(),
         });
@@ -219,12 +223,11 @@ const eliminarTicket = (id) => {
                         >Imagen del Ticket {{ editando ? '(Opcional para reemplazar)' : '(Opcional)' }}</label
                     >
                     <input
-                        ref="fileInput"
-                        type="file"
-                        @change="handleFileChange"
-                        accept="image/*"
-                        class="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                    />
+    type="file"
+    @change="handleFileChange"
+    accept="image/jpeg,image/png,image/jpg,image/webp"
+    class="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+/>
                 </div>
 
                 <div class="md:col-span-2 lg:col-span-1 flex items-end gap-2">

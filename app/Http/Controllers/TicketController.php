@@ -62,6 +62,7 @@ class TicketController extends Controller
 
     public function store(Request $request)
 {
+    dd($request->file('imagen'), $request->all());
     $request->validate([
         'nombre'   => 'required|string|max:255',
         'importe'  => 'required|numeric|min:0',
