@@ -8,6 +8,8 @@ use App\Http\Controllers\ReciboController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\LoteriaController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\NotaController;
+use Illuminate\Support\Facades\Auth;
 
 Route::middleware(['auth', 'verified'])->group(function () {
     // Recibos
@@ -30,6 +32,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/saldo-inicial', [DashboardController::class, 'guardarSaldoInicial'])->name('saldo.guardar');
+
+    Route::get('/notas', [NotaController::class, 'index'])->name('notas.index');
+    Route::post('/notas', [NotaController::class, 'store'])->name('notas.store');
+    Route::put('/notas/{nota}', [NotaController::class, 'update'])->name('notas.update');
+    Route::patch('/notas/{nota}/pin', [NotaController::class, 'togglePin'])->name('notas.pin');
+    Route::delete('/notas/{nota}', [NotaController::class, 'destroy'])->name('notas.destroy');
 });
 
 Route::get('/recibos/{id}/pdf', [ReciboController::class, 'pdf'])
@@ -37,12 +45,10 @@ Route::get('/recibos/{id}/pdf', [ReciboController::class, 'pdf'])
     ->middleware('signed');
 
 Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
+    if (Auth::check()) {
+        return redirect()->route('dashboard');
+    }
+    return redirect()->route('login');
 });
 
 Route::middleware('auth')->group(function () {

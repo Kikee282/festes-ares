@@ -55,6 +55,12 @@ const showingNavigationDropdown = ref(false);
                                 >
                                     Lotería
                                 </NavLink>
+                                <NavLink
+                                    :href="route('notas.index')"
+                                    :active="route().current('notas.index')"
+                                >
+                                    📝 Notas
+                                </NavLink>
                             </div>
                         </div>
 
@@ -185,6 +191,12 @@ const showingNavigationDropdown = ref(false);
                             :active="route().current('loteria.*')"
                         >
                             Lotería
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('notas.index')"
+                            :active="route().current('notas.index')"
+                        >
+                            📝 Notas
                         </ResponsiveNavLink>
                     </div>
 

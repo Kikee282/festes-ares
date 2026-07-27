@@ -11,8 +11,10 @@ class LoteriaController extends Controller
     public function index(Request $request)
     {
         $anio = (int) $request->input('anio', date('Y'));
+        $sorteo = $request->input('sorteo', 'navidad'); // 'navidad' o 'nino'
 
         $loterias = Loteria::where('anio', $anio)
+            ->where('sorteo', $sorteo)
             ->orderBy('fecha', 'desc')
             ->get();
 
@@ -27,9 +29,10 @@ class LoteriaController extends Controller
         }
 
         return Inertia::render('Loteria/Index', [
-            'loterias'         => $loterias,
-            'anioSeleccionado' => $anio,
-            'aniosDisponibles' => array_values($aniosDisponibles),
+            'loterias'          => $loterias,
+            'anioSeleccionado'  => $anio,
+            'sorteoSeleccionado'=> $sorteo,
+            'aniosDisponibles'  => array_values($aniosDisponibles),
         ]);
     }
 
@@ -43,12 +46,12 @@ class LoteriaController extends Controller
             'tipo_operacion' => 'required|in:compra,venta,liquidacion',
             'metodo_pago'    => 'required|in:metalico,bizum',
             'estado_pago'    => 'required|in:pagado,pendiente',
-            'importe_libre'  => 'nullable|numeric|min:0', // Usado cuando es liquidación
+            'sorteo'         => 'required|in:navidad,nino',
+            'importe_libre'  => 'nullable|numeric|min:0',
         ]);
 
         $validated['anio'] = (int) date('Y', strtotime($validated['fecha']));
 
-        // Lógica de cálculo de importe
         if ($validated['tipo_operacion'] === 'liquidacion') {
             $validated['cantidad'] = 0;
             $validated['importe'] = (float) ($request->input('importe_libre', 0));
@@ -75,6 +78,7 @@ class LoteriaController extends Controller
             'tipo_operacion' => 'required|in:compra,venta,liquidacion',
             'metodo_pago'    => 'required|in:metalico,bizum',
             'estado_pago'    => 'required|in:pagado,pendiente',
+            'sorteo'         => 'required|in:navidad,nino',
             'importe_libre'  => 'nullable|numeric|min:0',
         ]);
 

@@ -19,5 +19,6 @@ class Loteria extends Model
         'estado_pago',
         'importe',
         'anio',
+        'sorteo', // 'navidad' o 'nino'
     ];
 }
