@@ -16,7 +16,14 @@ class ReciboController extends Controller
     {
         $anio = $request->input('anio', date('Y'));
 
-        $recibos = Recibo::where('anio', $anio)->orderBy('numero', 'desc')->get();
+        $recibos = Recibo::where('anio', $anio)->get();
+
+        // Ordenamos en PHP extrayendo la parte numérica después del guion (ej: "26-11" -> 11)
+        $recibos = $recibos->sortByDesc(function ($recibo) {
+            $partes = explode('-', $recibo->numero);
+            return isset($partes[1]) ? (int) $partes[1] : 0;
+        })->values();
+
         $aniosDisponibles = Recibo::select('anio')->distinct()->pluck('anio');
 
         $recibos->transform(function ($recibo) {
@@ -32,33 +39,33 @@ class ReciboController extends Controller
     }
 
     public function store(Request $request)
-{
-    // 1. Ya NO pedimos 'numero' en la validación porque se genera solo
-    $validated = $request->validate([
-        'nombre'   => 'required|string|max:255',
-        'telefono' => 'nullable|string|max:20',
-        'cantidad' => 'required|numeric',
-        'concepto' => 'required|string|max:255',
-        'metodo_pago' => 'required|in:metalico,bizum',
-        'fecha'    => 'required|date',
-    ]);
+    {
+        // 1. Ya NO pedimos 'numero' en la validación porque se genera solo
+        $validated = $request->validate([
+            'nombre'   => 'required|string|max:255',
+            'telefono' => 'nullable|string|max:20',
+            'cantidad' => 'required|numeric',
+            'concepto' => 'required|string|max:255',
+            'metodo_pago' => 'required|in:metalico,bizum',
+            'fecha'    => 'required|date',
+        ]);
 
-    // 2. Extraemos el año y los dos últimos dígitos (ej: 2026 -> "26")
-    $anioCompleto = date('Y', strtotime($validated['fecha']));
-    $dosDigitosAnio = date('y', strtotime($validated['fecha']));
+        // 2. Extraemos el año y los dos últimos dígitos (ej: 2026 -> "26")
+        $anioCompleto = date('Y', strtotime($validated['fecha']));
+        $dosDigitosAnio = date('y', strtotime($validated['fecha']));
 
-    // 3. Obtenemos cuántos recibos existen ya registrados para ese año
-    $ultimoContador = Recibo::where('anio', $anioCompleto)->count();
-    $siguienteNumero = $ultimoContador + 1;
+        // 3. Obtenemos cuántos recibos existen ya registrados para ese año
+        $ultimoContador = Recibo::where('anio', $anioCompleto)->count();
+        $siguienteNumero = $ultimoContador + 1;
 
-    // 4. Asignamos el número formateado (ej: "26-1", "26-2") y el año
-    $validated['numero'] = $dosDigitosAnio . '-' . $siguienteNumero;
-    $validated['anio']   = $anioCompleto;
+        // 4. Asignamos el número formateado (ej: "26-1", "26-2") y el año
+        $validated['numero'] = $dosDigitosAnio . '-' . $siguienteNumero;
+        $validated['anio']   = $anioCompleto;
 
-    Recibo::create($validated);
+        Recibo::create($validated);
 
-    return redirect()->back();
-}
+        return redirect()->back();
+    }
     public function exportarExcel($anio)
     {
         return Excel::download(new RecibosExport($anio), "recibos_fiestas_{$anio}.xlsx");
@@ -72,38 +79,38 @@ class ReciboController extends Controller
     }
 
     public function update(Request $request, Recibo $recibo)
-{
-    // En la edición no sobreescribimos el 'numero' original, solo los datos modificables
-    $validated = $request->validate([
-        'nombre'   => 'required|string|max:255',
-        'telefono' => 'nullable|string|max:20',
-        'cantidad' => 'required|numeric',
-        'concepto' => 'required|string|max:255',
-        'metodo_pago' => 'required|in:metalico,bizum',
-        'fecha'    => 'required|date',
-    ]);
+    {
+        // En la edición no sobreescribimos el 'numero' original, solo los datos modificables
+        $validated = $request->validate([
+            'nombre'   => 'required|string|max:255',
+            'telefono' => 'nullable|string|max:20',
+            'cantidad' => 'required|numeric',
+            'concepto' => 'required|string|max:255',
+            'metodo_pago' => 'required|in:metalico,bizum',
+            'fecha'    => 'required|date',
+        ]);
 
-    $validated['anio'] = date('Y', strtotime($validated['fecha']));
+        $validated['anio'] = date('Y', strtotime($validated['fecha']));
 
-    $recibo->update($validated);
+        $recibo->update($validated);
 
-    return redirect()->back();
-}
+        return redirect()->back();
+    }
 
     public function pdf($id)
-{
-    $recibo = Recibo::findOrFail($id);
+    {
+        $recibo = Recibo::findOrFail($id);
 
-    // 1. Limpiamos el nombre para evitar caracteres no válidos en archivos (/ \ : * ? " < > |)
-    $nombreLimpio = preg_replace('/[\/\\\:\*\?"<>\|]/', '', $recibo->nombre);
+        // 1. Limpiamos el nombre para evitar caracteres no válidos en archivos (/ \ : * ? " < > |)
+        $nombreLimpio = preg_replace('/[\/\\\:\*\?"<>\|]/', '', $recibo->nombre);
 
-    // 2. Construimos el nombre del archivo PDF (ej: Recibo - Juan Perez.pdf)
-    $nombreArchivo = "Recibo - {$nombreLimpio}.pdf";
+        // 2. Construimos el nombre del archivo PDF (ej: Recibo - Juan Perez.pdf)
+        $nombreArchivo = "Recibo - {$nombreLimpio}.pdf";
 
-    // 3. Cargamos la vista de DomPDF
-    $pdf = Pdf::loadView('pdf.recibo', compact('recibo'));
+        // 3. Cargamos la vista de DomPDF
+        $pdf = Pdf::loadView('pdf.recibo', compact('recibo'));
 
-    // 4. Pasamos el nombre personalizado a stream()
-    return $pdf->stream($nombreArchivo);
-}
+        // 4. Pasamos el nombre personalizado a stream()
+        return $pdf->stream($nombreArchivo);
+    }
 }

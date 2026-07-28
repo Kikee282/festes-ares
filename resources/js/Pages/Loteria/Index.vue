@@ -437,6 +437,89 @@ const loteriasFiltradas = computed(() => {
                 </div>
             </form>
 
+            <!-- VISTA MÓVIL (TARJETAS) -->
+            <div class="block md:hidden space-y-4 mb-8">
+                <div
+                    v-for="item in loteriasFiltradas"
+                    :key="'card-' + item.id"
+                    class="bg-white p-4 rounded-xl shadow-md border-l-4 space-y-3"
+                    :class="{
+                        'border-amber-500': item.tipo_operacion === 'compra',
+                        'border-indigo-500': item.tipo_operacion === 'venta',
+                        'border-rose-500': item.tipo_operacion === 'liquidacion'
+                    }"
+                >
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="text-xs text-gray-400 font-semibold">{{ item.fecha }}</span>
+                            <h3 class="font-bold text-gray-900 text-base leading-tight">{{ item.nombre }}</h3>
+                        </div>
+                        <div class="text-right">
+                            <span
+                                class="font-extrabold text-base"
+                                :class="{
+                                    'text-amber-600': item.tipo_operacion === 'compra',
+                                    'text-indigo-600': item.tipo_operacion === 'venta',
+                                    'text-rose-600': item.tipo_operacion === 'liquidacion'
+                                }"
+                            >
+                                {{ item.tipo_operacion === 'venta' ? '+' : '-' }}{{ item.importe }} €
+                            </span>
+                            <div v-if="item.tipo_operacion !== 'liquidacion'" class="text-[10px] text-gray-500 font-semibold">
+                                {{ item.cantidad }} décimo(s)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-xs text-gray-600 space-y-1 bg-gray-50 p-2.5 rounded-lg">
+                        <p><strong>Concepto:</strong> {{ item.concepto }}</p>
+                        <div class="flex gap-2 pt-1 flex-wrap">
+                            <span
+                                :class="{
+                                    'bg-amber-100 text-amber-800': item.tipo_operacion === 'compra',
+                                    'bg-indigo-100 text-indigo-800': item.tipo_operacion === 'venta',
+                                    'bg-rose-100 text-rose-800': item.tipo_operacion === 'liquidacion'
+                                }"
+                                class="px-2 py-0.5 rounded-full font-bold uppercase text-[10px]"
+                            >
+                                {{ item.tipo_operacion }}
+                            </span>
+                            <span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold uppercase text-[10px]">
+                                {{ item.metodo_pago }}
+                            </span>
+                            <span
+                                :class="item.estado_pago === 'pagado' ? 'bg-green-100 text-green-800' : 'bg-rose-100 text-rose-800'"
+                                class="px-2 py-0.5 rounded-full font-bold uppercase text-[10px]"
+                            >
+                                {{ item.estado_pago }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-2 pt-1">
+                        <button
+                            @click="abrirEditar(item)"
+                            class="bg-amber-100 text-amber-800 font-semibold py-1.5 px-3 rounded-lg text-xs"
+                        >
+                            ✏️ Editar
+                        </button>
+                        <button
+                            @click="eliminarLoteria(item.id)"
+                            class="bg-red-100 text-red-700 font-semibold py-1.5 px-3 rounded-lg text-xs"
+                        >
+                            🗑️ Eliminar
+                        </button>
+                    </div>
+                </div>
+
+                <div
+                    v-if="loteriasFiltradas.length === 0"
+                    class="bg-white p-6 text-center text-gray-500 rounded-xl shadow-md"
+                >
+                    No hay registros de lotería de {{ sorteoSeleccionado === 'nino' ? 'El Niño' : 'Navidad' }} para mostrar.
+                </div>
+            </div>
+
             <!-- VISTA ESCRITORIO (TABLA) -->
             <div class="hidden md:block bg-white rounded-xl shadow-md overflow-hidden">
                 <table class="w-full text-left border-collapse">
